@@ -35,13 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskCooldownInHours = 1;
     let taskTimers = {};
 
-    let telegramId = 'test-user-id';
+    let telegramId = null;
+    let telegramUser = null;
+
     try {
-        if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-            telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+        if (window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+            telegramId = telegramUser.id.toString();
         }
     } catch (e) {
-        console.warn("Not running inside Telegram WebApp, using default ID.");
+        console.warn("Not running inside Telegram WebApp, using default values.");
     }
 
     const usersCollection = db.collection("users");
@@ -79,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const saveUserDataToFirebase = async () => {
+        if (!telegramId) return;
         try {
             await usersCollection.doc(telegramId).set({
                 userName: userName,
@@ -96,11 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const loadUserDataFromFirebase = async () => {
+        if (!telegramId) {
+            console.warn("Telegram ID not available. Cannot load user data.");
+            return;
+        }
+
         try {
             const userDoc = await usersCollection.doc(telegramId).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
-                userName = userData.userName || 'User';
+                userName = userData.userName || (telegramUser.first_name || 'User');
                 totalPoints = userData.points || 0;
                 adsWatched = userData.adsWatched || 0;
                 taskTimers = userData.taskTimers || {};
@@ -119,16 +128,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 updateTaskButtons();
-
-                if (userName === 'User') {
-                    editNameBtn.click();
+                
+                if (userName === 'User' && telegramUser) {
+                    userName = telegramUser.first_name || telegramUser.username || 'User';
+                    if (telegramUser.last_name) {
+                        userName += ` ${telegramUser.last_name}`;
+                    }
+                    userNameDisplay.textContent = userName;
+                    welcomeUserNameDisplay.textContent = userName;
+                    saveUserDataToFirebase();
                 }
 
             } else {
                 console.log("User not found. Creating a new entry.");
+                // Get user info from Telegram Web Apps API
+                if (telegramUser) {
+                    userName = telegramUser.first_name || telegramUser.username || 'User';
+                    if (telegramUser.last_name) {
+                        userName += ` ${telegramUser.last_name}`;
+                    }
+                }
+                
+                userNameDisplay.textContent = userName;
+                welcomeUserNameDisplay.textContent = userName;
                 referralCodeInput.value = generateReferralCode();
+
+                // Save initial data to Firebase
                 saveUserDataToFirebase();
-                editNameBtn.click();
             }
         } catch (error) {
             console.error('Error loading data from Firebase:', error);
