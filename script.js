@@ -305,7 +305,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     watchAdBtn.addEventListener('click', () => {
         if (adsWatched < maxAdsPerCycle) {
-            // Check if monetag script has been loaded
             if (typeof show_9673543 === 'function') {
                 show_9673543().then(() => {
                     adsWatched++;
@@ -314,9 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     updatePointsDisplay();
                     
                     if (adsWatched === maxAdsPerCycle) {
-                        alert('You have watched all ads for this cycle. The timer has started!');
                         adCooldownEnds = new Date(Date.now() + (adResetTimeInMinutes * 60 * 1000));
                         startAdTimer();
+                        alert('You have watched all ads for this cycle. The timer has started!');
                     } else {
                         alert('You earned ' + pointsPerAd + ' points!');
                     }
