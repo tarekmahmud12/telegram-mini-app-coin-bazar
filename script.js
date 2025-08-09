@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM elements
     const navItems = document.querySelectorAll('.app-footer .nav-item');
     const pages = document.querySelectorAll('.main-content .page');
     const adWatchedCountSpan = document.getElementById('ad-watched-count');
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskButtons = document.querySelectorAll('.task-btn');
     const referralCodeInput = document.getElementById('referral-code');
 
+    // State variables
     let adsWatched = 0;
     const maxAdsPerCycle = 10;
     const adResetTimeInMinutes = 30;
@@ -42,9 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
             telegramId = telegramUser.id.toString();
+        } else {
+            // Fallback for testing outside Telegram
+            telegramUser = {
+                id: 'test-user-id',
+                first_name: 'Test',
+                last_name: 'User',
+                username: 'testuser'
+            };
+            telegramId = telegramUser.id;
         }
     } catch (e) {
         console.warn("Not running inside Telegram WebApp, using default values.");
+        telegramUser = {
+            id: 'test-user-id',
+            first_name: 'Test',
+            last_name: 'User',
+            username: 'testuser'
+        };
+        telegramId = telegramUser.id;
     }
 
     const usersCollection = db.collection("users");
@@ -104,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn("Telegram ID not available. Cannot load user data.");
             return;
         }
-
+    
         try {
             const userDoc = await usersCollection.doc(telegramId).get();
             if (userDoc.exists) {
@@ -113,7 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalPoints = userData.points || 0;
                 adsWatched = userData.adsWatched || 0;
                 taskTimers = userData.taskTimers || {};
-                adCooldownEnds = userData.adsCooldownEnds ? userData.adsCooldownEnds.toDate() : null;
+                
+                if (userData.adsCooldownEnds && typeof userData.adsCooldownEnds.toDate === 'function') {
+                    adCooldownEnds = userData.adsCooldownEnds.toDate();
+                } else if (userData.adsCooldownEnds) {
+                    adCooldownEnds = new Date(userData.adsCooldownEnds);
+                } else {
+                    adCooldownEnds = null;
+                }
                 
                 userNameDisplay.textContent = userName;
                 welcomeUserNameDisplay.textContent = userName;
@@ -130,10 +155,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTaskButtons();
                 
                 if (userName === 'User' && telegramUser) {
-                    userName = telegramUser.first_name || telegramUser.username || 'User';
+                    let newName = telegramUser.first_name || 'User';
                     if (telegramUser.last_name) {
-                        userName += ` ${telegramUser.last_name}`;
+                        newName += ` ${telegramUser.last_name}`;
                     }
+                    userName = newName;
                     userNameDisplay.textContent = userName;
                     welcomeUserNameDisplay.textContent = userName;
                     saveUserDataToFirebase();
@@ -141,19 +167,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else {
                 console.log("User not found. Creating a new entry.");
-                // Get user info from Telegram Web Apps API
                 if (telegramUser) {
-                    userName = telegramUser.first_name || telegramUser.username || 'User';
+                    let newName = telegramUser.first_name || 'User';
                     if (telegramUser.last_name) {
-                        userName += ` ${telegramUser.last_name}`;
+                        newName += ` ${telegramUser.last_name}`;
                     }
+                    userName = newName;
                 }
                 
                 userNameDisplay.textContent = userName;
                 welcomeUserNameDisplay.textContent = userName;
                 referralCodeInput.value = generateReferralCode();
 
-                // Save initial data to Firebase
                 saveUserDataToFirebase();
             }
         } catch (error) {
@@ -170,8 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = Date.now();
         taskButtons.forEach(button => {
             const taskId = button.dataset.taskId;
-            if (taskTimers[taskId] && now < taskTimers[taskId].toDate().getTime()) {
-                const timeLeft = Math.floor((taskTimers[taskId].toDate().getTime() - now) / 1000);
+            let cooldownEndTime = null;
+            if (taskTimers[taskId]) {
+                if (typeof taskTimers[taskId].toDate === 'function') {
+                    cooldownEndTime = taskTimers[taskId].toDate().getTime();
+                } else {
+                    cooldownEndTime = new Date(taskTimers[taskId]).getTime();
+                }
+            }
+
+            if (cooldownEndTime && now < cooldownEndTime) {
+                const timeLeft = Math.floor((cooldownEndTime - now) / 1000);
                 const hours = Math.floor(timeLeft / 3600);
                 const minutes = Math.floor((timeLeft % 3600) / 60);
                 const seconds = timeLeft % 60;
@@ -193,9 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = true;
 
             const newWindow = window.open(taskUrl, '_blank');
-            let hasWaited = false;
             let timer = setTimeout(() => {
-                hasWaited = true;
                 if (newWindow) {
                     newWindow.close();
                 }
@@ -319,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 adCooldownEnds = null;
                 updateAdsCounter();
                 adTimerSpan.textContent = 'Ready!';
+                saveUserDataToFirebase(); // Save state after timer is done
             }
         }, 1000);
     };
