@@ -20,8 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let userName = 'User';
     const pointsPerAd = 10;
 
-    // Telegram user ID
-    const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+    // Telegram user ID - এখানে কোডটি আপডেট করা হয়েছে
+    let telegramId = 'test-user-id'; // টেলিগ্রামের বাইরে টেস্টিংয়ের জন্য একটি ডিফল্ট আইডি
+    try {
+        if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+        }
+    } catch (e) {
+        console.warn("Not running inside Telegram WebApp, using default ID.");
+    }
 
     // Firebase Firestore
     const usersCollection = db.collection("users");
