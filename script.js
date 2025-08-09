@@ -18,13 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxAdsPerCycle = 10;
     const adResetTimeInMinutes = 30;
     let adTimerInterval = null;
+    let adCooldownEnds = null;
 
     let totalPoints = 0;
     let userName = 'User';
     const pointsPerAd = 5;
     const pointsPerTask = 10;
 
-    // Updated taskUrls with the new link for all tasks
     const taskUrls = {
         '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
         '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -55,10 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
         adsLeftValue.textContent = maxAdsPerCycle - adsWatched;
         welcomeAdsLeft.textContent = maxAdsPerCycle - adsWatched;
         totalAdsWatched.textContent = adsWatched;
-        if (adsWatched === maxAdsPerCycle) {
+        if (adsWatched === maxAdsPerCycle && adCooldownEnds) {
             watchAdBtn.disabled = true;
+            watchAdBtn.textContent = 'Waiting for timer to finish';
+        } else if (adCooldownEnds) {
+             watchAdBtn.disabled = true;
+             watchAdBtn.textContent = 'Ad cycle in progress';
         } else {
             watchAdBtn.disabled = false;
+            watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
         }
     };
 
@@ -79,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 userName: userName,
                 points: totalPoints,
                 adsWatched: adsWatched,
-                adsCooldownEnds: adTimerInterval ? new Date(Date.now() + (adResetTimeInMinutes * 60 * 1000)) : null,
+                adsCooldownEnds: adCooldownEnds,
                 taskTimers: taskTimers,
                 referralCode: referralCodeInput.value,
                 lastUpdated: new Date()
@@ -99,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalPoints = userData.points || 0;
                 adsWatched = userData.adsWatched || 0;
                 taskTimers = userData.taskTimers || {};
+                adCooldownEnds = userData.adsCooldownEnds ? userData.adsCooldownEnds.toDate() : null;
                 
                 userNameDisplay.textContent = userName;
                 welcomeUserNameDisplay.textContent = userName;
@@ -107,8 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatePointsDisplay();
                 updateAdsCounter();
                 
-                if (userData.adsCooldownEnds) {
-                    const timeLeft = Math.max(0, (new Date(userData.adsCooldownEnds.toDate()).getTime() - Date.now()) / 1000);
+                if (adCooldownEnds) {
+                    const timeLeft = Math.max(0, (adCooldownEnds.getTime() - Date.now()) / 1000);
                     if (timeLeft > 0) startAdTimer(timeLeft);
                 }
 
@@ -138,8 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = Date.now();
         taskButtons.forEach(button => {
             const taskId = button.dataset.taskId;
-            if (taskTimers[taskId] && now < taskTimers[taskId]) {
-                const timeLeft = Math.floor((taskTimers[taskId] - now) / 1000);
+            if (taskTimers[taskId] && now < taskTimers[taskId].toDate().getTime()) {
+                const timeLeft = Math.floor((taskTimers[taskId].toDate().getTime() - now) / 1000);
                 const hours = Math.floor(timeLeft / 3600);
                 const minutes = Math.floor((timeLeft % 3600) / 60);
                 const seconds = timeLeft % 60;
@@ -156,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const taskId = button.dataset.taskId;
             const taskUrl = taskUrls[taskId];
-            const originalButtonText = button.textContent;
             
             button.textContent = 'Please wait 10 seconds...';
             button.disabled = true;
@@ -172,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalPoints += pointsPerTask;
                 updatePointsDisplay();
                 
-                const cooldownEnds = Date.now() + (taskCooldownInHours * 60 * 60 * 1000);
+                const cooldownEnds = new Date(Date.now() + (taskCooldownInHours * 60 * 60 * 1000));
                 taskTimers[taskId] = cooldownEnds;
                 saveUserDataToFirebase();
                 updateTaskButtons();
@@ -278,16 +283,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let timeLeft = initialTime;
         adTimerSpan.textContent = formatTime(timeLeft);
         watchAdBtn.disabled = true;
-
+        
         adTimerInterval = setInterval(() => {
             timeLeft--;
             adTimerSpan.textContent = formatTime(timeLeft);
             if (timeLeft <= 0) {
                 clearInterval(adTimerInterval);
                 adsWatched = 0;
+                adCooldownEnds = null;
                 updateAdsCounter();
                 adTimerSpan.textContent = 'Ready!';
-                watchAdBtn.disabled = false;
             }
         }, 1000);
     };
@@ -300,23 +305,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     watchAdBtn.addEventListener('click', () => {
         if (adsWatched < maxAdsPerCycle) {
-            show_9673543().then(() => {
-                adsWatched++;
-                totalPoints += pointsPerAd;
-                updateAdsCounter();
-                updatePointsDisplay();
-                saveUserDataToFirebase();
-
-                if (adsWatched === maxAdsPerCycle) {
-                    alert('You have watched all ads for this cycle. The timer has started!');
-                    startAdTimer();
-                } else {
-                    alert('You earned ' + pointsPerAd + ' points!');
-                }
-            }).catch(e => {
-                console.error('Monetag ad error:', e);
-                alert('There was an error loading the ad. Please try again.');
-            });
+            // Check if monetag script has been loaded
+            if (typeof show_9673543 === 'function') {
+                show_9673543().then(() => {
+                    adsWatched++;
+                    totalPoints += pointsPerAd;
+                    updateAdsCounter();
+                    updatePointsDisplay();
+                    
+                    if (adsWatched === maxAdsPerCycle) {
+                        alert('You have watched all ads for this cycle. The timer has started!');
+                        adCooldownEnds = new Date(Date.now() + (adResetTimeInMinutes * 60 * 1000));
+                        startAdTimer();
+                    } else {
+                        alert('You earned ' + pointsPerAd + ' points!');
+                    }
+                    saveUserDataToFirebase();
+                }).catch(e => {
+                    console.error('Monetag ad error:', e);
+                    alert('There was an error loading the ad. Please try again.');
+                });
+            } else {
+                alert('Monetag script is not loaded. Please refresh the page.');
+            }
         } else {
             alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
         }
