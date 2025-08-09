@@ -10,18 +10,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const adsLeftValue = document.getElementById('ads-left-value');
     const totalAdsWatched = document.getElementById('total-ads-watched');
     const welcomeAdsLeft = document.getElementById('welcome-ads-left');
-    
+    const watchAdBtn = document.querySelector('.watch-ad-btn');
+    const taskButtons = document.querySelectorAll('.task-btn');
+    const referralCodeInput = document.getElementById('referral-code');
+
     let adsWatched = 0;
     const maxAdsPerCycle = 10;
     const adResetTimeInMinutes = 30;
-    let timerInterval = null;
+    let adTimerInterval = null;
 
     let totalPoints = 0;
     let userName = 'User';
-    const pointsPerAd = 10;
+    const pointsPerAd = 5;
+    const pointsPerTask = 10;
 
-    // Telegram user ID - এখানে কোডটি আপডেট করা হয়েছে
-    let telegramId = 'test-user-id'; // টেলিগ্রামের বাইরে টেস্টিংয়ের জন্য একটি ডিফল্ট আইডি
+    // Updated taskUrls with the new link for all tasks
+    const taskUrls = {
+        '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+        '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+        '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+        '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+        '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    };
+    const taskCooldownInHours = 1;
+    let taskTimers = {};
+
+    let telegramId = 'test-user-id';
     try {
         if (window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
             telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
@@ -30,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn("Not running inside Telegram WebApp, using default ID.");
     }
 
-    // Firebase Firestore
     const usersCollection = db.collection("users");
 
     const updatePointsDisplay = () => {
@@ -42,6 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
         adsLeftValue.textContent = maxAdsPerCycle - adsWatched;
         welcomeAdsLeft.textContent = maxAdsPerCycle - adsWatched;
         totalAdsWatched.textContent = adsWatched;
+        if (adsWatched === maxAdsPerCycle) {
+            watchAdBtn.disabled = true;
+        } else {
+            watchAdBtn.disabled = false;
+        }
     };
 
     const switchPage = (pageId) => {
@@ -61,6 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 userName: userName,
                 points: totalPoints,
                 adsWatched: adsWatched,
+                adsCooldownEnds: adTimerInterval ? new Date(Date.now() + (adResetTimeInMinutes * 60 * 1000)) : null,
+                taskTimers: taskTimers,
+                referralCode: referralCodeInput.value,
                 lastUpdated: new Date()
             }, { merge: true });
             console.log("User data saved to Firebase.");
@@ -77,19 +98,87 @@ document.addEventListener('DOMContentLoaded', () => {
                 userName = userData.userName || 'User';
                 totalPoints = userData.points || 0;
                 adsWatched = userData.adsWatched || 0;
+                taskTimers = userData.taskTimers || {};
                 
                 userNameDisplay.textContent = userName;
                 welcomeUserNameDisplay.textContent = userName;
+                referralCodeInput.value = userData.referralCode || generateReferralCode();
+                
                 updatePointsDisplay();
                 updateAdsCounter();
+                
+                if (userData.adsCooldownEnds) {
+                    const timeLeft = Math.max(0, (new Date(userData.adsCooldownEnds.toDate()).getTime() - Date.now()) / 1000);
+                    if (timeLeft > 0) startAdTimer(timeLeft);
+                }
+
+                updateTaskButtons();
+
+                if (userName === 'User') {
+                    editNameBtn.click();
+                }
+
             } else {
                 console.log("User not found. Creating a new entry.");
+                referralCodeInput.value = generateReferralCode();
                 saveUserDataToFirebase();
+                editNameBtn.click();
             }
         } catch (error) {
             console.error('Error loading data from Firebase:', error);
         }
     };
+
+    const generateReferralCode = () => {
+        const uniqueId = Math.floor(100000 + Math.random() * 900000);
+        return `CB${uniqueId}`;
+    };
+
+    const updateTaskButtons = () => {
+        const now = Date.now();
+        taskButtons.forEach(button => {
+            const taskId = button.dataset.taskId;
+            if (taskTimers[taskId] && now < taskTimers[taskId]) {
+                const timeLeft = Math.floor((taskTimers[taskId] - now) / 1000);
+                const hours = Math.floor(timeLeft / 3600);
+                const minutes = Math.floor((timeLeft % 3600) / 60);
+                const seconds = timeLeft % 60;
+                button.textContent = `Active in: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                button.disabled = true;
+            } else {
+                button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+                button.disabled = false;
+            }
+        });
+    };
+
+    taskButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const taskId = button.dataset.taskId;
+            const taskUrl = taskUrls[taskId];
+            const originalButtonText = button.textContent;
+            
+            button.textContent = 'Please wait 10 seconds...';
+            button.disabled = true;
+
+            const newWindow = window.open(taskUrl, '_blank');
+            let hasWaited = false;
+            let timer = setTimeout(() => {
+                hasWaited = true;
+                if (newWindow) {
+                    newWindow.close();
+                }
+                alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+                totalPoints += pointsPerTask;
+                updatePointsDisplay();
+                
+                const cooldownEnds = Date.now() + (taskCooldownInHours * 60 * 60 * 1000);
+                taskTimers[taskId] = cooldownEnds;
+                saveUserDataToFirebase();
+                updateTaskButtons();
+            }, 10000); // 10 second timer
+        });
+    });
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -121,10 +210,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('withdraw-form').addEventListener('submit', (e) => {
+    document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        alert('Withdrawal request submitted successfully!');
-        e.target.reset();
+        
+        const amount = document.getElementById('amount').value;
+        const paymentMethod = document.getElementById('payment-method').value;
+        const accountId = document.getElementById('account-id').value;
+        
+        const withdrawalData = {
+            userName: userName,
+            telegramId: telegramId,
+            amount: amount,
+            paymentMethod: paymentMethod,
+            accountId: accountId
+        };
+        
+        try {
+            const response = await fetch('/withdraw-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(withdrawalData)
+            });
+
+            if (response.ok) {
+                alert('Withdrawal request submitted successfully!');
+                e.target.reset();
+            } else {
+                alert('Failed to submit withdrawal request. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error submitting withdrawal request:', error);
+            alert('An error occurred. Please check your connection and try again.');
+        }
     });
 
     editNameBtn.addEventListener('click', () => {
@@ -155,17 +274,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const startAdTimer = () => {
-        let timeLeft = adResetTimeInMinutes * 60;
+    const startAdTimer = (initialTime = adResetTimeInMinutes * 60) => {
+        let timeLeft = initialTime;
         adTimerSpan.textContent = formatTime(timeLeft);
-        timerInterval = setInterval(() => {
+        watchAdBtn.disabled = true;
+
+        adTimerInterval = setInterval(() => {
             timeLeft--;
             adTimerSpan.textContent = formatTime(timeLeft);
             if (timeLeft <= 0) {
-                clearInterval(timerInterval);
+                clearInterval(adTimerInterval);
                 adsWatched = 0;
                 updateAdsCounter();
                 adTimerSpan.textContent = 'Ready!';
+                watchAdBtn.disabled = false;
             }
         }, 1000);
     };
@@ -176,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
     };
 
-    document.querySelector('.watch-ad-btn').addEventListener('click', () => {
+    watchAdBtn.addEventListener('click', () => {
         if (adsWatched < maxAdsPerCycle) {
             show_9673543().then(() => {
                 adsWatched++;
@@ -187,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (adsWatched === maxAdsPerCycle) {
                     alert('You have watched all ads for this cycle. The timer has started!');
-                    // startAdTimer();
+                    startAdTimer();
                 } else {
                     alert('You earned ' + pointsPerAd + ' points!');
                 }
@@ -199,6 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
         }
     });
-    
+
     loadUserDataFromFirebase();
 });

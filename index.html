@@ -50,7 +50,7 @@
                         <span class="stat-label">Today</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-value" id="ads-left-value">40</span>
+                        <span class="stat-value" id="ads-left-value">10</span>
                         <span class="stat-label">Left</span>
                     </div>
                     <div class="stat-item">
@@ -68,7 +68,7 @@
                     <p>Start earning points by completing tasks, watching ads, and inviting friends.</p>
                     <div class="welcome-stats">
                         <div class="stat-item">
-                            <span class="stat-value" id="welcome-ads-left">40</span>
+                            <span class="stat-value" id="welcome-ads-left">10</span>
                             <span class="stat-label">Ads Left</span>
                         </div>
                         <div class="stat-item">
@@ -82,17 +82,34 @@
                     </div>
                     <p class="developed-by">Developed by: Coin Bazar</p>
                 </div>
-            </section>
-
-            <section id="tasks-page" class="page">
                 <div class="watch-ads-card card">
                     <h2>Watch Ads</h2>
                     <p>Watch short video ads to earn points. You can watch up to 10 ads every 30 minutes.</p>
+                    <p class="points-rule">Each ad rewards you with 5 points.</p>
                     <div class="ad-progress">
                         <span id="ad-watched-count">0/10 watched</span>
                         <span id="ad-timer">00:00 remaining</span>
                     </div>
-                    <button class="watch-ad-btn">Watch Ad & Earn 10 Points</button>
+                    <button class="watch-ad-btn">Watch Ad & Earn 5 Points</button>
+                </div>
+            </section>
+
+            <section id="tasks-page" class="page">
+                <div class="tasks-card card">
+                    <h2>Daily Tasks</h2>
+                    <p class="task-rules">
+                        Complete a task to earn 10 points. To successfully complete a task, you must:
+                        <br>- Stay on the website for at least 10 seconds.
+                        <br>- If prompted, sign up for the website.
+                        <br>Each task can be completed once per hour.
+                    </p>
+                    <div class="task-buttons">
+                        <button class="task-btn" data-task-id="1">Task 1: +10 Points</button>
+                        <button class="task-btn" data-task-id="2">Task 2: +10 Points</button>
+                        <button class="task-btn" data-task-id="3">Task 3: +10 Points</button>
+                        <button class="task-btn" data-task-id="4">Task 4: +10 Points</button>
+                        <button class="task-btn" data-task-id="5">Task 5: +10 Points</button>
+                    </div>
                 </div>
             </section>
 
@@ -167,14 +184,14 @@
                     <div class="referral-item">
                         <label for="referral-code">Your Referral Code</label>
                         <div class="input-with-btn">
-                            <input type="text" id="referral-code" value="PQOYIMFR" readonly>
+                            <input type="text" id="referral-code" value="CB123456" readonly>
                             <button class="copy-btn">Copy</button>
                         </div>
                     </div>
                     <div class="referral-item">
                         <label for="referral-link">Your Referral Link</label>
                         <div class="input-with-btn">
-                            <input type="text" id="referral-link" value="https://t.me/coin_bazar_bot" readonly>
+                            <input type="text" id="referral-link" value="https://t.me/CoinBazar_bot" readonly>
                             <button class="copy-btn">Copy</button>
                         </div>
                     </div>

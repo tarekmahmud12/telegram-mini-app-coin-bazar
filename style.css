@@ -1,295 +1,331 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f0f2f5;
     margin: 0;
     padding: 0;
-    background-color: #f0f8ff; /* Light blue background */
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
 }
 
 .app-container {
     width: 100%;
-    max-width: 400px;
-    background-color: #f0f8ff;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+    max-width: 450px;
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    position: relative;
 }
 
 .app-header {
-    background: linear-gradient(to right, #4a90e2, #7aa4e2);
-    color: white;
+    background-color: #4b8afe;
+    color: #fff;
     padding: 20px;
-    text-align: center;
-    position: relative;
-    /* প্রোফাইল কার্ডের জন্য বেশি জায়গা রাখা হয়েছে */
-    padding-bottom: 100px;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
 }
 
 .app-name {
     margin: 0;
-    font-size: 1.2em;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.icon {
+    font-size: 1.5rem;
+    cursor: pointer;
 }
 
 .profile-card {
-    background-color: white;
-    color: black;
-    border-radius: 15px;
-    padding: 20px;
-    margin: 0 10px;
-    position: absolute;
-    /* প্রোফাইল কার্ডটিকে নিচে নামানো হয়েছে */
-    bottom: -70px;
-    left: 10px;
-    right: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
 }
 
 .profile-info {
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    margin-bottom: 20px;
+    gap: 10px;
 }
 
 .profile-pic {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    border: 3px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 3px solid #fff;
 }
 
 .user-details {
     display: flex;
     align-items: center;
-    margin-top: 10px;
+    gap: 5px;
 }
 
 .user-name {
-    font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.user-name-input {
+    font-size: 1rem;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 120px;
 }
 
 .verify-badge {
-    color: #4a90e2;
-    margin-left: 5px;
+    background-color: #fff;
+    color: #4b8afe;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
 }
 
 .edit-icon {
-    font-size: 1em;
-    cursor: pointer;
-    margin-left: 5px;
+    font-size: 1rem;
 }
 
 .user-stats {
     display: flex;
     justify-content: space-around;
+    width: 100%;
     text-align: center;
-    border-top: 1px solid #eee;
-    padding-top: 15px;
+    margin-top: 10px;
 }
 
 .stat-item {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .stat-value {
+    font-size: 1.1rem;
     font-weight: bold;
-    font-size: 1.2em;
-    color: #4a90e2;
 }
 
 .stat-label {
-    font-size: 0.8em;
-    color: #888;
-    display: block;
+    font-size: 0.8rem;
+    color: #f0f2f5;
 }
 
 .main-content {
     flex-grow: 1;
-    /* প্রোফাইল কার্ডের জন্য padding বাড়ানো হয়েছে */
-    padding: 90px 10px 10px 10px;
-    position: relative;
-    z-index: 1;
+    padding: 20px;
+    overflow-y: auto;
 }
 
 .page {
     display: none;
-    padding: 10px;
+    animation: fadeIn 0.5s ease-in-out;
 }
 
 .page.active {
     display: block;
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .card {
-    background-color: white;
-    border-radius: 15px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
     padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card h2 {
+    margin-top: 0;
     margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.card p {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.5;
 }
 
 .welcome-stats {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     text-align: center;
-    margin-top: 15px;
-    border-top: 1px solid #eee;
-    padding-top: 15px;
+    margin: 20px 0;
 }
 
 .developed-by {
-    font-size: 0.8em;
-    color: #888;
+    font-size: 0.7rem;
+    color: #999;
     text-align: center;
-    margin-top: 20px;
+    margin-top: 15px;
 }
 
-.watch-ad-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #4a90e2;
-    color: white;
+.watch-ad-btn, .join-btn, .submit-btn, .copy-btn, .share-btn, .task-btn {
+    background-color: #4b8afe;
+    color: #fff;
     border: none;
+    padding: 12px 20px;
     border-radius: 8px;
-    font-size: 1em;
+    font-size: 1rem;
     cursor: pointer;
+    width: 100%;
     margin-top: 15px;
+    transition: background-color 0.3s ease;
+}
+
+.watch-ad-btn:hover, .join-btn:hover, .submit-btn:hover, .share-btn:hover, .task-btn:hover {
+    background-color: #3a75e3;
+}
+
+.ad-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: #666;
 }
 
 .bonus-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.bonus-item:last-child {
+    border-bottom: none;
 }
 
 .join-btn {
-    background-color: #4a90e2;
-    color: white;
-    border: none;
+    width: auto;
     padding: 8px 15px;
-    border-radius: 5px;
-    cursor: pointer;
+    font-size: 0.9rem;
+    margin: 0;
 }
 
 .form-group {
     margin-bottom: 15px;
 }
 
-label {
+.form-group label {
     display: block;
+    font-size: 0.9rem;
+    color: #555;
     margin-bottom: 5px;
-    font-weight: bold;
 }
 
-input, select {
+.form-group input, .form-group select {
     width: 100%;
     padding: 10px;
+    border-radius: 5px;
     border: 1px solid #ddd;
-    border-radius: 8px;
     box-sizing: border-box;
-}
-
-.submit-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    cursor: pointer;
-}
-
-.referral-item {
-    margin-bottom: 15px;
+    font-size: 0.9rem;
 }
 
 .input-with-btn {
     display: flex;
+    gap: 10px;
 }
 
 .input-with-btn input {
     flex-grow: 1;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+    background-color: #f0f2f5;
 }
 
-.input-with-btn .copy-btn {
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    padding: 0 15px;
-    border-radius: 0 8px 8px 0;
-    cursor: pointer;
+.copy-btn {
+    width: auto;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    margin: 0;
 }
 
 .share-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    cursor: pointer;
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 .app-footer {
     display: flex;
     justify-content: space-around;
+    align-items: center;
+    background-color: #fff;
     padding: 10px 0;
-    background-color: white;
-    border-top: 1px solid #ddd;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #eee;
 }
 
 .nav-item {
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #999;
     cursor: pointer;
-    color: #888;
-    transition: color 0.3s;
-    flex: 1;
+    transition: color 0.3s ease;
 }
 
 .nav-item.active {
-    color: #4a90e2;
+    color: #4b8afe;
 }
 
 .nav-item .icon {
-    font-size: 1.5em;
-    display: block;
+    font-size: 1.2rem;
+    margin-bottom: 5px;
 }
 
-.nav-item span {
-    font-size: 0.8em;
+.task-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
 }
 
-/* নতুন স্টাইল: ইউজার নাম এডিটিং */
-.user-name-input {
-    font-weight: bold;
-    font-size: 1.1em;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 2px 5px;
-    text-align: center;
-    background-color: #f9f9f9;
+.task-btn {
+    width: calc(50% - 5px);
+    margin-top: 0;
+}
+
+.task-btn.disabled {
+    background-color: #999;
+    cursor: not-allowed;
+}
+
+.points-rule {
+    font-size: 0.8rem;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.task-rules {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+    .app-container {
+        border-radius: 0;
+    }
 }
