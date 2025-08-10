@@ -1,59 +1,5 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    /** ================================
-     *  Firebase Initialization
-     *  ================================ */
-    // 🔹 Firebase Config অবশ্যই নিজের প্রোজেক্টের দিয়ে বদলাবে
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
-    };
-
-    // পুরানো SDK হলে এইভাবে করো:
-    if (typeof firebase !== "undefined" && firebase.firestore) {
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.firestore();
-    } else {
-        console.error("Firebase SDK not loaded!");
-        return;
-    }
-
-    /** ================================
-     *  Telegram User Detection
-     *  ================================ */
-    let telegramId = null;
-    let telegramUser = null;
-
-    try {
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.ready();
-            if (window.Telegram.WebApp.initDataUnsafe?.user) {
-                telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-                telegramId = telegramUser.id.toString();
-            }
-        }
-    } catch (e) {
-        console.error("Telegram API init error:", e);
-    }
-
-    // Fallback mode (dev/test only)
-    if (!telegramId) {
-        console.warn("No Telegram ID found, using fallback (dev mode)!");
-        telegramId = 'fallback-user-' + Math.floor(Math.random() * 1000000); // Random for each test
-        telegramUser = {
-            id: telegramId,
-            first_name: 'Fallback',
-            last_name: 'User',
-            username: 'fallback_user'
-        };
-    }
-
-    /** ================================
-     *  DOM Elements
-     *  ================================ */
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM elements
     const navItems = document.querySelectorAll('.app-footer .nav-item');
     const pages = document.querySelectorAll('.main-content .page');
     const adWatchedCountSpan = document.getElementById('ad-watched-count');
@@ -69,9 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const taskButtons = document.querySelectorAll('.task-btn');
     const referralCodeInput = document.getElementById('referral-code');
 
-    /** ================================
-     *  State Variables
-     *  ================================ */
+    // State variables
     let adsWatched = 0;
     const maxAdsPerCycle = 10;
     const adResetTimeInMinutes = 30;
@@ -79,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let adCooldownEnds = null;
 
     let totalPoints = 0;
-    let userName = telegramUser?.first_name || 'User';
+    let userName = 'User';
     const pointsPerAd = 5;
     const pointsPerTask = 10;
 
@@ -93,12 +37,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     const taskCooldownInHours = 1;
     let taskTimers = {};
 
+    let telegramId = null;
+    let telegramUser = null;
+
+    try {
+        if (window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+            telegramId = telegramUser.id.toString();
+        } else {
+            // Fallback for testing outside Telegram
+            console.warn("Telegram WebApp user data not found. Using a fallback ID.");
+            telegramId = 'fallback-test-user-id';
+            telegramUser = {
+                id: telegramId,
+                first_name: 'Fallback',
+                last_name: 'User',
+                username: 'fallback_user'
+            };
+        }
+    } catch (e) {
+        console.error("Failed to initialize Telegram WebApp API:", e);
+        telegramId = 'fallback-test-user-id';
+        telegramUser = {
+            id: telegramId,
+            first_name: 'Fallback',
+            last_name: 'User',
+            username: 'fallback_user'
+        };
+    }
+
     const usersCollection = db.collection("users");
 
-    /** ================================
-     *  Helper Functions
-     *  ================================ */
-    const updatePointsDisplay = () => totalPointsDisplay.textContent = totalPoints;
+    const updatePointsDisplay = () => {
+        totalPointsDisplay.textContent = totalPoints;
+    };
 
     const updateAdsCounter = () => {
         const adsLeft = maxAdsPerCycle - adsWatched;
@@ -127,76 +99,107 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    const generateReferralCode = () => `CB${Math.floor(100000 + Math.random() * 900000)}`;
-
-    const formatTime = (seconds) => {
-        if (seconds <= 0) return 'Ready!';
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
-    };
-
-    /** ================================
-     *  Firebase Save / Load
-     *  ================================ */
     const saveUserDataToFirebase = async () => {
-        if (!telegramId) return;
+        if (!telegramId) {
+            console.error("Cannot save data: Telegram ID is not available.");
+            return;
+        }
         try {
             await usersCollection.doc(telegramId).set({
-                userName,
+                userName: userName,
                 points: totalPoints,
-                adsWatched,
-                adsCooldownEnds: adCooldownEnds || null,
-                taskTimers,
-                referralCode: referralCodeInput.value || generateReferralCode(),
+                adsWatched: adsWatched,
+                adsCooldownEnds: adCooldownEnds,
+                taskTimers: taskTimers,
+                referralCode: referralCodeInput.value,
                 lastUpdated: new Date()
             }, { merge: true });
-            console.log(`✅ User data saved for ${telegramId}`);
+            console.log("User data saved to Firebase with ID:", telegramId);
         } catch (error) {
-            console.error("❌ Save error:", error);
+            console.error("Error saving data to Firebase:", error);
         }
     };
 
     const loadUserDataFromFirebase = async () => {
-        if (!telegramId) return;
+        if (!telegramId) {
+            console.warn("Telegram ID not available. Cannot load user data.");
+            return;
+        }
 
         try {
             const userDoc = await usersCollection.doc(telegramId).get();
             if (userDoc.exists) {
-                const data = userDoc.data();
-                userName = data.userName || telegramUser.first_name || 'User';
-                totalPoints = data.points || 0;
-                adsWatched = data.adsWatched || 0;
-                taskTimers = data.taskTimers || {};
-                adCooldownEnds = data.adsCooldownEnds ? new Date(data.adsCooldownEnds) : null;
-                referralCodeInput.value = data.referralCode || generateReferralCode();
+                const userData = userDoc.data();
+                userName = userData.userName || (telegramUser.first_name || 'User');
+                totalPoints = userData.points || 0;
+                adsWatched = userData.adsWatched || 0;
+                taskTimers = userData.taskTimers || {};
+                
+                if (userData.adsCooldownEnds && typeof userData.adsCooldownEnds.toDate === 'function') {
+                    adCooldownEnds = userData.adsCooldownEnds.toDate();
+                } else if (userData.adsCooldownEnds) {
+                    adCooldownEnds = new Date(userData.adsCooldownEnds);
+                } else {
+                    adCooldownEnds = null;
+                }
+
+                if (userName === 'User' && telegramUser) {
+                    let newName = telegramUser.first_name || 'User';
+                    if (telegramUser.last_name) {
+                        newName += ` ${telegramUser.last_name}`;
+                    }
+                    userName = newName;
+                }
+                
             } else {
+                console.log("New user detected. Creating a new entry in Firebase for ID:", telegramId);
+                let newName = telegramUser.first_name || 'User';
+                if (telegramUser.last_name) {
+                    newName += ` ${telegramUser.last_name}`;
+                }
+                userName = newName;
                 referralCodeInput.value = generateReferralCode();
-                await saveUserDataToFirebase();
+                await saveUserDataToFirebase(); // Save the initial data
             }
 
+            // Update UI elements with loaded data
             userNameDisplay.textContent = userName;
             welcomeUserNameDisplay.textContent = userName;
+            if (userDoc.exists) {
+                referralCodeInput.value = userDoc.data().referralCode || generateReferralCode();
+            }
+
             updatePointsDisplay();
             updateAdsCounter();
             updateTaskButtons();
-
+            
             if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
-                startAdTimer((adCooldownEnds.getTime() - Date.now()) / 1000);
+                const timeLeft = Math.max(0, (adCooldownEnds.getTime() - Date.now()) / 1000);
+                startAdTimer(timeLeft);
             }
+
         } catch (error) {
-            console.error("❌ Load error:", error);
+            console.error('Error loading data from Firebase:', error);
         }
     };
 
-    /** ================================
-     *  Task Buttons
-     *  ================================ */
+    const generateReferralCode = () => {
+        const uniqueId = Math.floor(100000 + Math.random() * 900000);
+        return `CB${uniqueId}`;
+    };
+
     const updateTaskButtons = () => {
         const now = Date.now();
         taskButtons.forEach(button => {
             const taskId = button.dataset.taskId;
-            let cooldownEndTime = taskTimers[taskId] ? new Date(taskTimers[taskId]).getTime() : null;
+            let cooldownEndTime = null;
+            if (taskTimers[taskId]) {
+                if (typeof taskTimers[taskId].toDate === 'function') {
+                    cooldownEndTime = taskTimers[taskId].toDate().getTime();
+                } else {
+                    cooldownEndTime = new Date(taskTimers[taskId]).getTime();
+                }
+            }
 
             if (cooldownEndTime && now < cooldownEndTime) {
                 const timeLeft = Math.floor((cooldownEndTime - now) / 1000);
@@ -216,31 +219,129 @@ document.addEventListener('DOMContentLoaded', async () => {
         button.addEventListener('click', () => {
             const taskId = button.dataset.taskId;
             const taskUrl = taskUrls[taskId];
+            
             button.textContent = 'Please wait 10 seconds...';
             button.disabled = true;
 
             const newWindow = window.open(taskUrl, '_blank');
-            setTimeout(() => {
-                if (newWindow) newWindow.close();
+            let timer = setTimeout(() => {
+                if (newWindow) {
+                    newWindow.close();
+                }
                 alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
                 totalPoints += pointsPerTask;
-                taskTimers[taskId] = new Date(Date.now() + taskCooldownInHours * 60 * 60 * 1000);
                 updatePointsDisplay();
+                
+                const cooldownEnds = new Date(Date.now() + (taskCooldownInHours * 60 * 60 * 1000));
+                taskTimers[taskId] = cooldownEnds;
                 saveUserDataToFirebase();
                 updateTaskButtons();
-            }, 10000);
+            }, 10000); // 10 second timer
         });
     });
 
-    /** ================================
-     *  Ads Timer
-     *  ================================ */
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const pageId = item.dataset.page + '-page';
+            switchPage(pageId);
+        });
+    });
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const input = e.target.previousElementSibling;
+            input.select();
+            input.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            alert('Copied to clipboard!');
+        });
+    });
+
+    document.querySelector('.share-btn').addEventListener('click', () => {
+        const referralLink = document.getElementById('referral-link').value;
+        if (navigator.share) {
+            navigator.share({
+                title: 'Coin Bazar Referral',
+                text: 'Join Coin Bazar and earn points!',
+                url: referralLink,
+            }).then(() => console.log('Shared successfully')).catch(console.error);
+        } else {
+            alert('Web Share API is not supported in this browser.');
+        }
+    });
+
+    document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const amount = document.getElementById('amount').value;
+        const paymentMethod = document.getElementById('payment-method').value;
+        const accountId = document.getElementById('account-id').value;
+        
+        const withdrawalData = {
+            userName: userName,
+            telegramId: telegramId,
+            amount: amount,
+            paymentMethod: paymentMethod,
+            accountId: accountId
+        };
+        
+        try {
+            const response = await fetch('/withdraw-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(withdrawalData)
+            });
+
+            if (response.ok) {
+                alert('Withdrawal request submitted successfully!');
+                e.target.reset();
+            } else {
+                alert('Failed to submit withdrawal request. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error submitting withdrawal request:', error);
+            alert('An error occurred. Please check your connection and try again.');
+        }
+    });
+
+    editNameBtn.addEventListener('click', () => {
+        const currentName = userNameDisplay.textContent;
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = currentName;
+        nameInput.className = 'user-name-input';
+        nameInput.maxLength = 20;
+
+        userNameDisplay.replaceWith(nameInput);
+        nameInput.focus();
+
+        const saveName = () => {
+            const newName = nameInput.value.trim() || 'User';
+            userName = newName;
+            userNameDisplay.textContent = newName;
+            welcomeUserNameDisplay.textContent = newName;
+            nameInput.replaceWith(userNameDisplay);
+            saveUserDataToFirebase();
+        };
+
+        nameInput.addEventListener('blur', saveName);
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveName();
+            }
+        });
+    });
+
     const startAdTimer = (initialTime = adResetTimeInMinutes * 60) => {
         let timeLeft = Math.ceil(initialTime);
         adTimerSpan.textContent = formatTime(timeLeft);
         watchAdBtn.disabled = true;
-
-        if (adTimerInterval) clearInterval(adTimerInterval);
+        
+        if (adTimerInterval) {
+            clearInterval(adTimerInterval);
+        }
 
         adTimerInterval = setInterval(() => {
             timeLeft--;
@@ -256,6 +357,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 1000);
     };
 
+    const formatTime = (seconds) => {
+        if (seconds <= 0) return 'Ready!';
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
+    };
+
     watchAdBtn.addEventListener('click', async () => {
         if (adsWatched < maxAdsPerCycle) {
             if (typeof show_9673543 === 'function') {
@@ -265,58 +373,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     totalPoints += pointsPerAd;
                     updateAdsCounter();
                     updatePointsDisplay();
-
+                    
                     if (adsWatched >= maxAdsPerCycle) {
-                        adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                        adCooldownEnds = new Date(Date.now() + (adResetTimeInMinutes * 60 * 1000));
                         startAdTimer();
-                        alert('All ads watched. Timer started!');
+                        alert('You have watched all ads for this cycle. The timer has started!');
                     } else {
-                        alert(`You earned ${pointsPerAd} points!`);
+                        alert('You earned ' + pointsPerAd + ' points!');
                     }
-                    saveUserDataToFirebase();
+                    await saveUserDataToFirebase();
                 } catch (e) {
-                    console.error('Ad error:', e);
-                    alert('Error loading ad. Try again.');
+                    console.error('Monetag ad error:', e);
+                    alert('There was an error loading the ad. Please try again.');
                 }
             } else {
-                alert('Ad script not loaded. Refresh the page.');
+                alert('Monetag script is not loaded. Please refresh the page.');
             }
         } else {
-            alert('Ad limit reached. Wait for timer.');
+            alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
         }
     });
 
-    /** ================================
-     *  Edit Name
-     *  ================================ */
-    editNameBtn.addEventListener('click', () => {
-        const currentName = userNameDisplay.textContent;
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.value = currentName;
-        nameInput.className = 'user-name-input';
-        nameInput.maxLength = 20;
-
-        userNameDisplay.replaceWith(nameInput);
-        nameInput.focus();
-
-        const saveName = () => {
-            userName = nameInput.value.trim() || 'User';
-            userNameDisplay.textContent = userName;
-            welcomeUserNameDisplay.textContent = userName;
-            nameInput.replaceWith(userNameDisplay);
-            saveUserDataToFirebase();
-        };
-
-        nameInput.addEventListener('blur', saveName);
-        nameInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter') saveName();
-        });
-    });
-
-    /** ================================
-     *  Init
-     *  ================================ */
-    await loadUserDataFromFirebase();
+    // Initial load
+    loadUserDataFromFirebase();
+    // Update tasks timer every second
     setInterval(updateTaskButtons, 1000);
 });
