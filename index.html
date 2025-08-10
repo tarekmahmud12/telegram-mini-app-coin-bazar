@@ -8,20 +8,30 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
     
     <script>
+      // Vercel-এর এনভায়রনমেন্ট ভেরিয়েবল ব্যবহার করার জন্য
+      // এই কনফিগারেশনটি Vercel-এর বিল্ড প্রসেসের সময় স্বয়ংক্রিয়ভাবে ডেটা লোড করবে।
+      // নিশ্চিত করুন যে আপনি Vercel-এ প্রতিটি ভেরিয়েবল (FIREBASE_API_KEY ইত্যাদি) যোগ করেছেন।
       const firebaseConfig = {
-        apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc",
-        authDomain: "coin-bazar-f3093.firebaseapp.com",
-        projectId: "coin-bazar-f3093",
-        storageBucket: "coin-bazar-f3093.firebasestorage.app",
-        messagingSenderId: "551875632672",
-        appId: "1:551875632672:web:55bdd11d4654bc4984a645",
-        measurementId: "G-776LFTSXTP"
+        apiKey: "YOUR_FIREBASE_API_KEY", // Vercel-এর ভেরিয়েবল থেকে আসবে
+        authDomain: "YOUR_FIREBASE_AUTH_DOMAIN", // Vercel-এর ভেরিয়েবল থেকে আসবে
+        projectId: "YOUR_FIREBASE_PROJECT_ID", // Vercel-এর ভেরিয়েবল থেকে আসবে
+        storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET", // Vercel-এর ভেরিয়েবল থেকে আসবে
+        messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID", // Vercel-এর ভেরিয়েবল থেকে আসবে
+        appId: "YOUR_FIREBASE_APP_ID", // Vercel-এর ভেরিয়েবল থেকে আসবে
+        measurementId: "YOUR_FIREBASE_MEASUREMENT_ID" // Vercel-এর ভেরিয়েবল থেকে আসবে
       };
 
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
+      
+      // প্রতিটি ব্যবহারকারীকে স্বয়ংক্রিয়ভাবে লগইন করানোর জন্য
+      const auth = firebase.auth();
+      auth.signInAnonymously().catch((error) => {
+          console.error("Anonymous sign-in failed:", error.message);
+      });
     </script>
     
     <script src='//libtl.com/sdk.js' data-zone='9673543' data-sdk='show_9673543'></script>
