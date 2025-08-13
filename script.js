@@ -1,401 +1,483 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // DOM elements
-    const navItems = document.querySelectorAll('.app-footer .nav-item');
-    const pages = document.querySelectorAll('.main-content .page');
-    const adWatchedCountSpan = document.getElementById('ad-watched-count');
-    const adTimerSpan = document.getElementById('ad-timer');
-    const totalPointsDisplay = document.getElementById('total-points');
-    const userNameDisplay = document.getElementById('user-name-display');
-    const welcomeUserNameDisplay = document.getElementById('welcome-user-name');
-    const editNameBtn = document.getElementById('edit-name-btn');
-    const adsLeftValue = document.getElementById('ads-left-value');
-    const totalAdsWatched = document.getElementById('total-ads-watched');
-    const welcomeAdsLeft = document.getElementById('welcome-ads-left');
-    const watchAdBtn = document.querySelector('.watch-ad-btn');
-    const taskButtons = document.querySelectorAll('.task-btn');
-    const referralCodeInput = document.getElementById('referral-code');
+// ======================= Firebase v12 (Modular) =======================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc,
+  serverTimestamp, Timestamp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-    // State variables
-    let adsWatched = 0;
-    const maxAdsPerCycle = 10;
-    const adResetTimeInMinutes = 30;
-    let adTimerInterval = null;
-    let adCooldownEnds = null;
+// ==== তোমার Firebase কনফিগ (তুমিই আগে শেয়ার করেছিলে) ====
+const firebaseConfig = {
+  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc",
+  authDomain: "coin-bazar-f3093.firebaseapp.com",
+  projectId: "coin-bazar-f3093",
+  storageBucket: "coin-bazar-f3093.appspot.com",
+  messagingSenderId: "551875632672",
+  appId: "1:551875632672:web:55bdd11d4654bc4984a645",
+  measurementId: "G-776LFTSXTP"
+};
 
-    let totalPoints = 0;
-    let userName = 'User';
-    const pointsPerAd = 5;
-    const pointsPerTask = 10;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-    const taskUrls = {
-        '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-        '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-        '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-        '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-        '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+// ======================= DOM Ready =======================
+document.addEventListener("DOMContentLoaded", () => {
+  // ---------- DOM Elements ----------
+  const navItems = document.querySelectorAll('.app-footer .nav-item');
+  const pages = document.querySelectorAll('.main-content .page');
+
+  const adWatchedCountSpan = document.getElementById('ad-watched-count');
+  const adTimerSpan = document.getElementById('ad-timer');
+
+  const totalPointsDisplay = document.getElementById('total-points');
+  const userNameDisplay = document.getElementById('user-name-display');
+  const welcomeUserNameDisplay = document.getElementById('welcome-user-name');
+  const editNameBtn = document.getElementById('edit-name-btn');
+
+  const adsLeftValue = document.getElementById('ads-left-value');
+  const totalAdsWatched = document.getElementById('total-ads-watched');
+  const welcomeAdsLeft = document.getElementById('welcome-ads-left');
+  const watchAdBtn = document.querySelector('.watch-ad-btn');
+
+  const taskButtons = document.querySelectorAll('.task-btn');
+  const referralCodeInput = document.getElementById('referral-code');
+  const referralLinkInput = document.getElementById('referral-link');
+
+  // ---------- State ----------
+  let adsWatched = 0;
+  const maxAdsPerCycle = 10;
+  const adResetTimeInMinutes = 30;
+  let adTimerInterval = null;
+  let adCooldownEnds = null; // Date or null
+
+  let totalPoints = 0;
+  let userName = 'User';
+  const pointsPerAd = 5;
+  const pointsPerTask = 10;
+
+  const taskUrls = {
+    '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+  };
+  const taskCooldownInHours = 1;
+  let taskTimers = {}; // { taskId: Date/Timestamp }
+
+  let telegramId = null;
+  let telegramUser = null;
+
+  // ======================= Telegram Init =======================
+  try {
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+      telegramId = String(telegramUser.id);
+    } else {
+      console.warn("Telegram user not found. Using fallback ID.");
+      telegramId = 'fallback-test-user-id';
+      telegramUser = {
+        id: telegramId,
+        first_name: 'Fallback',
+        last_name: 'User',
+        username: 'fallback_user'
+      };
+    }
+  } catch (e) {
+    console.error("Telegram init error:", e);
+    telegramId = 'fallback-test-user-id';
+    telegramUser = {
+      id: telegramId,
+      first_name: 'Fallback',
+      last_name: 'User',
+      username: 'fallback_user'
     };
-    const taskCooldownInHours = 1;
-    let taskTimers = {};
+  }
 
-    let telegramId = null;
-    let telegramUser = null;
+  // ======================= Firebase Auth (Anonymous) =======================
+  let firebaseUID = null; // ডকুমেন্ট আইডি হিসেবে UID ব্যবহার হবে (Rules friendly)
+  signInAnonymously(auth).catch(err => {
+    console.error("Anonymous sign-in failed:", err);
+  });
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    firebaseUID = user.uid;
+    await loadUserDataFromFirebase(); // UID পাওয়ার পর ডাটা লোড
+    // Referral link আপডেট (bot link + code)
+    updateReferralLinkInput();
+    // Tasks UI refresh interval
+    setInterval(updateTaskButtons, 1000);
+  });
+
+  // ======================= Firestore Helpers =======================
+  const usersDocRef = () => doc(db, "users", firebaseUID || "temp"); // UID সেট হওয়ার পরই কাজ করবে
+
+  const serverNow = () => serverTimestamp();
+
+  const toDate = (maybeTs) => {
+    try {
+      if (!maybeTs) return null;
+      if (maybeTs instanceof Date) return maybeTs;
+      if (maybeTs.toDate && typeof maybeTs.toDate === 'function') return maybeTs.toDate();
+      // Fallback parse
+      return new Date(maybeTs);
+    } catch {
+      return null;
+    }
+  };
+
+  // ======================= UI Updates =======================
+  const updatePointsDisplay = () => {
+    totalPointsDisplay.textContent = String(totalPoints);
+  };
+
+  const updateAdsCounter = () => {
+    const adsLeft = Math.max(0, maxAdsPerCycle - adsWatched);
+    adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
+    adsLeftValue.textContent = String(adsLeft);
+    welcomeAdsLeft.textContent = String(adsLeft);
+    totalAdsWatched.textContent = String(adsWatched);
+
+    if (adsWatched >= maxAdsPerCycle && adCooldownEnds) {
+      watchAdBtn.disabled = true;
+      watchAdBtn.textContent = 'Waiting for timer to finish';
+    } else {
+      watchAdBtn.disabled = false;
+      watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+    }
+  };
+
+  const switchPage = (pageId) => {
+    pages.forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId)?.classList.add('active');
+    navItems.forEach(item => {
+      item.classList.remove('active');
+      if (item.dataset.page + '-page' === pageId) item.classList.add('active');
+    });
+  };
+
+  const generateReferralCode = () => {
+    const uniqueId = Math.floor(100000 + Math.random() * 900000);
+    return `CB${uniqueId}`;
+  };
+
+  const updateReferralLinkInput = () => {
+    const code = referralCodeInput.value || "CB123456";
+    // তোমার বট ইউজারনেম বসাও
+    referralLinkInput.value = `https://t.me/CoinBazar_bot?start=${code}`;
+  };
+
+  // ======================= Firestore Save/Load =======================
+  const saveUserDataToFirebase = async () => {
+    if (!firebaseUID) return;
+    try {
+      // taskTimers অবজেক্টে Date থাকলে Timestamp-এ কনভার্ট
+      const timersToSave = {};
+      Object.keys(taskTimers || {}).forEach(k => {
+        const d = toDate(taskTimers[k]);
+        if (d) timersToSave[k] = Timestamp.fromDate(d);
+      });
+
+      await setDoc(usersDocRef(), {
+        firebaseUID,
+        telegramId,
+        userName,
+        points: totalPoints,
+        adsWatched,
+        adsCooldownEnds: adCooldownEnds ? Timestamp.fromDate(adCooldownEnds) : null,
+        taskTimers: timersToSave,
+        referralCode: referralCodeInput.value || generateReferralCode(),
+        lastUpdated: serverNow()
+      }, { merge: true });
+
+      // console.log("User data saved");
+    } catch (error) {
+      console.error("Error saving data:", error);
+    }
+  };
+
+  const loadUserDataFromFirebase = async () => {
+    if (!firebaseUID) return;
 
     try {
-        if (window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-            telegramId = telegramUser.id.toString();
+      const snap = await getDoc(usersDocRef());
+      if (snap.exists()) {
+        const data = snap.data();
+        userName = data.userName || (telegramUser?.first_name || 'User');
+        totalPoints = data.points || 0;
+        adsWatched = data.adsWatched || 0;
+        taskTimers = data.taskTimers || {};
+
+        // cooldown restore
+        if (data.adsCooldownEnds) {
+          adCooldownEnds = toDate(data.adsCooldownEnds);
         } else {
-            // Fallback for testing outside Telegram
-            console.warn("Telegram WebApp user data not found. Using a fallback ID.");
-            telegramId = 'fallback-test-user-id';
-            telegramUser = {
-                id: telegramId,
-                first_name: 'Fallback',
-                last_name: 'User',
-                username: 'fallback_user'
-            };
+          adCooldownEnds = null;
         }
-    } catch (e) {
-        console.error("Failed to initialize Telegram WebApp API:", e);
-        telegramId = 'fallback-test-user-id';
-        telegramUser = {
-            id: telegramId,
-            first_name: 'Fallback',
-            last_name: 'User',
-            username: 'fallback_user'
-        };
+
+        // referral code
+        referralCodeInput.value = data.referralCode || generateReferralCode();
+      } else {
+        // New user
+        let newName = telegramUser?.first_name || 'User';
+        if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
+        userName = newName;
+        referralCodeInput.value = generateReferralCode();
+        await saveUserDataToFirebase();
+      }
+
+      // UI sync
+      userNameDisplay.textContent = userName;
+      welcomeUserNameDisplay.textContent = userName;
+      updatePointsDisplay();
+      updateAdsCounter();
+      updateTaskButtons();
+
+      // if cooldown running
+      if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
+        const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
+        startAdTimer(secondsLeft);
+      } else if (adsWatched >= maxAdsPerCycle) {
+        // safety: if no cooldown saved but ads maxed, start a fresh cooldown
+        adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+        startAdTimer(adResetTimeInMinutes * 60);
+        saveUserDataToFirebase();
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
+  };
+
+  // ======================= Tasks =======================
+  const updateTaskButtons = () => {
+    const now = Date.now();
+    taskButtons.forEach(button => {
+      const taskId = button.dataset.taskId;
+      let cooldownEndTime = null;
+
+      const saved = taskTimers[taskId];
+      if (saved) {
+        const d = toDate(saved);
+        if (d) cooldownEndTime = d.getTime();
+      }
+
+      if (cooldownEndTime && now < cooldownEndTime) {
+        const timeLeft = Math.floor((cooldownEndTime - now) / 1000);
+        const hours = Math.floor(timeLeft / 3600);
+        const minutes = Math.floor((timeLeft % 3600) / 60);
+        const seconds = timeLeft % 60;
+        button.textContent = `Active in: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        button.disabled = true;
+      } else {
+        button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+        button.disabled = false;
+      }
+    });
+  };
+
+  taskButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const taskId = button.dataset.taskId;
+      const taskUrl = taskUrls[taskId];
+
+      button.textContent = 'Please wait 10 seconds...';
+      button.disabled = true;
+
+      const newWindow = window.open(taskUrl, '_blank');
+      setTimeout(async () => {
+        try { if (newWindow) newWindow.close(); } catch {}
+        alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+        totalPoints += pointsPerTask;
+        updatePointsDisplay();
+
+        const cooldownEnds = new Date(Date.now() + taskCooldownInHours * 60 * 60 * 1000);
+        taskTimers[taskId] = cooldownEnds;
+
+        await saveUserDataToFirebase();
+        updateTaskButtons();
+      }, 10000);
+    });
+  });
+
+  // ======================= Navigation =======================
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const pageId = item.dataset.page + '-page';
+      switchPage(pageId);
+    });
+  });
+
+  // ======================= Copy & Share =======================
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const input = e.target.previousElementSibling;
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      alert('Copied to clipboard!');
+    });
+  });
+
+  document.querySelector('.share-btn').addEventListener('click', () => {
+    const referralLink = referralLinkInput.value;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Coin Bazar Referral',
+        text: 'Join Coin Bazar and earn points!',
+        url: referralLink,
+      }).catch(() => {});
+    } else {
+      alert('Web Share API is not supported in this browser.');
+    }
+  });
+
+  // ======================= Withdraw =======================
+  document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const amount = Number(document.getElementById('amount').value || 0);
+    const paymentMethod = document.getElementById('payment-method').value;
+    const accountId = document.getElementById('account-id').value.trim();
+
+    if (amount < 1000) {
+      alert('Minimum withdrawal is 1000 points.');
+      return;
+    }
+    if (amount > totalPoints) {
+      alert('Not enough points.');
+      return;
     }
 
-    const usersCollection = db.collection("users");
-
-    const updatePointsDisplay = () => {
-        totalPointsDisplay.textContent = totalPoints;
+    const payload = {
+      userName,
+      telegramId,
+      firebaseUID,
+      amount,
+      paymentMethod,
+      accountId
     };
 
-    const updateAdsCounter = () => {
-        const adsLeft = maxAdsPerCycle - adsWatched;
-        adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
-        adsLeftValue.textContent = adsLeft;
-        welcomeAdsLeft.textContent = adsLeft;
-        totalAdsWatched.textContent = adsWatched;
+    try {
+      const res = await fetch('/withdraw-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-        if (adsWatched >= maxAdsPerCycle && adCooldownEnds) {
-            watchAdBtn.disabled = true;
-            watchAdBtn.textContent = 'Waiting for timer to finish';
+      if (res.ok) {
+        alert('Withdrawal request submitted successfully!');
+        e.target.reset();
+      } else {
+        alert('Failed to submit withdrawal request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting withdrawal request:', error);
+      alert('An error occurred. Please check your connection and try again.');
+    }
+  });
+
+  // ======================= Name Edit =======================
+  editNameBtn.addEventListener('click', () => {
+    const currentName = userNameDisplay.textContent;
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = currentName;
+    nameInput.className = 'user-name-input';
+    nameInput.maxLength = 20;
+
+    userNameDisplay.replaceWith(nameInput);
+    nameInput.focus();
+
+    const saveName = async () => {
+      const newName = nameInput.value.trim() || 'User';
+      userName = newName;
+      userNameDisplay.textContent = newName;
+      welcomeUserNameDisplay.textContent = newName;
+      nameInput.replaceWith(userNameDisplay);
+      await saveUserDataToFirebase();
+    };
+
+    nameInput.addEventListener('blur', saveName);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveName();
+    });
+  });
+
+  // ======================= Ad Timer =======================
+  const startAdTimer = (initialSeconds = adResetTimeInMinutes * 60) => {
+    let timeLeft = Math.ceil(initialSeconds);
+    adTimerSpan.textContent = formatTime(timeLeft);
+    watchAdBtn.disabled = true;
+
+    if (adTimerInterval) clearInterval(adTimerInterval);
+
+    adTimerInterval = setInterval(async () => {
+      timeLeft--;
+      adTimerSpan.textContent = formatTime(timeLeft);
+      if (timeLeft <= 0) {
+        clearInterval(adTimerInterval);
+        adsWatched = 0;
+        adCooldownEnds = null;
+        updateAdsCounter();
+        adTimerSpan.textContent = 'Ready!';
+        await saveUserDataToFirebase();
+      }
+    }, 1000);
+  };
+
+  const formatTime = (seconds) => {
+    if (seconds <= 0) return 'Ready!';
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
+  };
+
+  // ======================= Watch Ad =======================
+  watchAdBtn.addEventListener('click', async () => {
+    if (adsWatched >= maxAdsPerCycle) {
+      alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
+      return;
+    }
+
+    if (typeof window.show_9673543 === 'function') {
+      try {
+        await window.show_9673543();
+        adsWatched++;
+        totalPoints += pointsPerAd;
+        updateAdsCounter();
+        updatePointsDisplay();
+
+        if (adsWatched >= maxAdsPerCycle) {
+          adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+          startAdTimer();
+          alert('You have watched all ads for this cycle. The timer has started!');
         } else {
-            watchAdBtn.disabled = false;
-            watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+          alert(`You earned ${pointsPerAd} points!`);
         }
-    };
+        await saveUserDataToFirebase();
+      } catch (e) {
+        console.error('Ad error:', e);
+        alert('There was an error loading the ad. Please try again.');
+      }
+    } else {
+      alert('Monetag script is not loaded. Please refresh the page.');
+    }
+  });
 
-    const switchPage = (pageId) => {
-        pages.forEach(page => page.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        navItems.forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.page + '-page' === pageId) {
-                item.classList.add('active');
-            }
-        });
-    };
+  // ======================= Init (UI defaults) =======================
+  // প্রথমবার UI সেট
+  userNameDisplay.textContent = userName;
+  welcomeUserNameDisplay.textContent = userName;
+  updatePointsDisplay();
+  updateAdsCounter();
 
-    const saveUserDataToFirebase = async () => {
-        if (!telegramId) {
-            console.error("Cannot save data: Telegram ID is not available.");
-            return;
-        }
-        try {
-            await usersCollection.doc(telegramId).set({
-                userName: userName,
-                points: totalPoints,
-                adsWatched: adsWatched,
-                adsCooldownEnds: adCooldownEnds,
-                taskTimers: taskTimers,
-                referralCode: referralCodeInput.value,
-                lastUpdated: new Date()
-            }, { merge: true });
-            console.log("User data saved to Firebase with ID:", telegramId);
-        } catch (error) {
-            console.error("Error saving data to Firebase:", error);
-        }
-    };
-
-    const loadUserDataFromFirebase = async () => {
-        if (!telegramId) {
-            console.warn("Telegram ID not available. Cannot load user data.");
-            return;
-        }
-
-        try {
-            const userDoc = await usersCollection.doc(telegramId).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                userName = userData.userName || (telegramUser.first_name || 'User');
-                totalPoints = userData.points || 0;
-                adsWatched = userData.adsWatched || 0;
-                taskTimers = userData.taskTimers || {};
-                
-                if (userData.adsCooldownEnds && typeof userData.adsCooldownEnds.toDate === 'function') {
-                    adCooldownEnds = userData.adsCooldownEnds.toDate();
-                } else if (userData.adsCooldownEnds) {
-                    adCooldownEnds = new Date(userData.adsCooldownEnds);
-                } else {
-                    adCooldownEnds = null;
-                }
-
-                if (userName === 'User' && telegramUser) {
-                    let newName = telegramUser.first_name || 'User';
-                    if (telegramUser.last_name) {
-                        newName += ` ${telegramUser.last_name}`;
-                    }
-                    userName = newName;
-                }
-                
-            } else {
-                console.log("New user detected. Creating a new entry in Firebase for ID:", telegramId);
-                let newName = telegramUser.first_name || 'User';
-                if (telegramUser.last_name) {
-                    newName += ` ${telegramUser.last_name}`;
-                }
-                userName = newName;
-                referralCodeInput.value = generateReferralCode();
-                await saveUserDataToFirebase(); // Save the initial data
-            }
-
-            // Update UI elements with loaded data
-            userNameDisplay.textContent = userName;
-            welcomeUserNameDisplay.textContent = userName;
-            if (userDoc.exists) {
-                referralCodeInput.value = userDoc.data().referralCode || generateReferralCode();
-            }
-
-            updatePointsDisplay();
-            updateAdsCounter();
-            updateTaskButtons();
-            
-            if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
-                const timeLeft = Math.max(0, (adCooldownEnds.getTime() - Date.now()) / 1000);
-                startAdTimer(timeLeft);
-            }
-
-        } catch (error) {
-            console.error('Error loading data from Firebase:', error);
-        }
-    };
-
-    const generateReferralCode = () => {
-        const uniqueId = Math.floor(100000 + Math.random() * 900000);
-        return `CB${uniqueId}`;
-    };
-
-    const updateTaskButtons = () => {
-        const now = Date.now();
-        taskButtons.forEach(button => {
-            const taskId = button.dataset.taskId;
-            let cooldownEndTime = null;
-            if (taskTimers[taskId]) {
-                if (typeof taskTimers[taskId].toDate === 'function') {
-                    cooldownEndTime = taskTimers[taskId].toDate().getTime();
-                } else {
-                    cooldownEndTime = new Date(taskTimers[taskId]).getTime();
-                }
-            }
-
-            if (cooldownEndTime && now < cooldownEndTime) {
-                const timeLeft = Math.floor((cooldownEndTime - now) / 1000);
-                const hours = Math.floor(timeLeft / 3600);
-                const minutes = Math.floor((timeLeft % 3600) / 60);
-                const seconds = timeLeft % 60;
-                button.textContent = `Active in: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                button.disabled = true;
-            } else {
-                button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
-                button.disabled = false;
-            }
-        });
-    };
-
-    taskButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const taskId = button.dataset.taskId;
-            const taskUrl = taskUrls[taskId];
-            
-            button.textContent = 'Please wait 10 seconds...';
-            button.disabled = true;
-
-            const newWindow = window.open(taskUrl, '_blank');
-            let timer = setTimeout(() => {
-                if (newWindow) {
-                    newWindow.close();
-                }
-                alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
-                totalPoints += pointsPerTask;
-                updatePointsDisplay();
-                
-                const cooldownEnds = new Date(Date.now() + (taskCooldownInHours * 60 * 60 * 1000));
-                taskTimers[taskId] = cooldownEnds;
-                saveUserDataToFirebase();
-                updateTaskButtons();
-            }, 10000); // 10 second timer
-        });
-    });
-
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const pageId = item.dataset.page + '-page';
-            switchPage(pageId);
-        });
-    });
-
-    document.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const input = e.target.previousElementSibling;
-            input.select();
-            input.setSelectionRange(0, 99999);
-            document.execCommand('copy');
-            alert('Copied to clipboard!');
-        });
-    });
-
-    document.querySelector('.share-btn').addEventListener('click', () => {
-        const referralLink = document.getElementById('referral-link').value;
-        if (navigator.share) {
-            navigator.share({
-                title: 'Coin Bazar Referral',
-                text: 'Join Coin Bazar and earn points!',
-                url: referralLink,
-            }).then(() => console.log('Shared successfully')).catch(console.error);
-        } else {
-            alert('Web Share API is not supported in this browser.');
-        }
-    });
-
-    document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const amount = document.getElementById('amount').value;
-        const paymentMethod = document.getElementById('payment-method').value;
-        const accountId = document.getElementById('account-id').value;
-        
-        const withdrawalData = {
-            userName: userName,
-            telegramId: telegramId,
-            amount: amount,
-            paymentMethod: paymentMethod,
-            accountId: accountId
-        };
-        
-        try {
-            const response = await fetch('/withdraw-request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(withdrawalData)
-            });
-
-            if (response.ok) {
-                alert('Withdrawal request submitted successfully!');
-                e.target.reset();
-            } else {
-                alert('Failed to submit withdrawal request. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error submitting withdrawal request:', error);
-            alert('An error occurred. Please check your connection and try again.');
-        }
-    });
-
-    editNameBtn.addEventListener('click', () => {
-        const currentName = userNameDisplay.textContent;
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.value = currentName;
-        nameInput.className = 'user-name-input';
-        nameInput.maxLength = 20;
-
-        userNameDisplay.replaceWith(nameInput);
-        nameInput.focus();
-
-        const saveName = () => {
-            const newName = nameInput.value.trim() || 'User';
-            userName = newName;
-            userNameDisplay.textContent = newName;
-            welcomeUserNameDisplay.textContent = newName;
-            nameInput.replaceWith(userNameDisplay);
-            saveUserDataToFirebase();
-        };
-
-        nameInput.addEventListener('blur', saveName);
-        nameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                saveName();
-            }
-        });
-    });
-
-    const startAdTimer = (initialTime = adResetTimeInMinutes * 60) => {
-        let timeLeft = Math.ceil(initialTime);
-        adTimerSpan.textContent = formatTime(timeLeft);
-        watchAdBtn.disabled = true;
-        
-        if (adTimerInterval) {
-            clearInterval(adTimerInterval);
-        }
-
-        adTimerInterval = setInterval(() => {
-            timeLeft--;
-            adTimerSpan.textContent = formatTime(timeLeft);
-            if (timeLeft <= 0) {
-                clearInterval(adTimerInterval);
-                adsWatched = 0;
-                adCooldownEnds = null;
-                updateAdsCounter();
-                adTimerSpan.textContent = 'Ready!';
-                saveUserDataToFirebase();
-            }
-        }, 1000);
-    };
-
-    const formatTime = (seconds) => {
-        if (seconds <= 0) return 'Ready!';
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
-    };
-
-    watchAdBtn.addEventListener('click', async () => {
-        if (adsWatched < maxAdsPerCycle) {
-            if (typeof show_9673543 === 'function') {
-                try {
-                    await show_9673543();
-                    adsWatched++;
-                    totalPoints += pointsPerAd;
-                    updateAdsCounter();
-                    updatePointsDisplay();
-                    
-                    if (adsWatched >= maxAdsPerCycle) {
-                        adCooldownEnds = new Date(Date.now() + (adResetTimeInMinutes * 60 * 1000));
-                        startAdTimer();
-                        alert('You have watched all ads for this cycle. The timer has started!');
-                    } else {
-                        alert('You earned ' + pointsPerAd + ' points!');
-                    }
-                    await saveUserDataToFirebase();
-                } catch (e) {
-                    console.error('Monetag ad error:', e);
-                    alert('There was an error loading the ad. Please try again.');
-                }
-            } else {
-                alert('Monetag script is not loaded. Please refresh the page.');
-            }
-        } else {
-            alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
-        }
-    });
-
-    // Initial load
-    loadUserDataFromFirebase();
-    // Update tasks timer every second
-    setInterval(updateTaskButtons, 1000);
+  // ন্যাভিগেশন ডিফল্ট
+  navItems.forEach(item => {
+    const pageId = item.dataset.page + '-page';
+    if (item.classList.contains('active')) switchPage(pageId);
+  });
 });
