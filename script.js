@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------- State ----------
   let adsWatched = 0;
   const maxAdsPerCycle = 10;
-  const adResetTimeInMinutes = 15; // এখানে পরিবর্তন করা হয়েছে
+  const adResetTimeInMinutes = 15;
   let adTimerInterval = null;
   let adCooldownEnds = null;
   let totalPoints = 0;
@@ -124,7 +124,9 @@ document.addEventListener("DOMContentLoaded", () => {
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(adsWatched);
-    if (adsWatched >= maxAdsPerCycle && adCooldownEnds) {
+    
+    // বাটন সক্রিয় করার লজিক এখানে আরও স্পষ্ট করা হয়েছে
+    if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
       watchAdBtn.textContent = 'Waiting for timer to finish';
     } else {
@@ -194,21 +196,27 @@ document.addEventListener("DOMContentLoaded", () => {
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
         referralCodeInput.value = generateReferralCode();
-        await saveUserDataToFirebase();
+        await saveUserDataFromFirebase();
       }
       userNameDisplay.textContent = userName;
       welcomeUserNameDisplay.textContent = userName;
       updatePointsDisplay();
       updateAdsCounter();
       updateTaskButtons();
+      
+      // এখানে টাইমার লজিকটি আরও স্পষ্ট করা হয়েছে
       if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
         const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
         startAdTimer(secondsLeft);
-      } else if (adsWatched >= maxAdsPerCycle) {
-        adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-        startAdTimer(adResetTimeInMinutes * 60);
+      } else {
+        // যদি কোoldown শেষ হয়ে যায়, তাহলে টাইমারটি বন্ধ করে দিন এবং Ads Count রিসেট করুন
+        adsWatched = 0;
+        adCooldownEnds = null;
+        updateAdsCounter();
+        adTimerSpan.textContent = 'Ready!';
         saveUserDataToFirebase();
       }
+
     } catch (error) {
       console.error("Error loading data:", error);
     }
