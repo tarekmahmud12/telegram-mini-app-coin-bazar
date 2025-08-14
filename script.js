@@ -1,8 +1,8 @@
 // ======================= Firebase v12 (Modular) =======================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc,
-  serverTimestamp, Timestamp
+  getFirestore, doc, getDoc, setDoc, updateDoc,
+  serverTimestamp, Timestamp, increment
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, onAuthStateChanged
@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let userName = 'User';
   const pointsPerAd = 5;
   const pointsPerTask = 10;
+  const referralPoints = 200; // এখানে রেফারেল পয়েন্ট 200 করা হয়েছে
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -62,12 +63,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let taskTimers = {};
   let telegramId = null;
   let telegramUser = null;
+  let referrerCode = null;
 
   // ======================= Telegram Init =======================
   try {
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+    if (window.Telegram?.WebApp?.initDataUnsafe) {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
       telegramId = String(telegramUser.id);
+      referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
+      if (referrerCode) {
+        console.log("Referrer code found:", referrerCode);
+      }
     } else {
       console.warn("Telegram user not found. Using fallback ID.");
       telegramId = 'fallback-test-user-id';
@@ -125,7 +131,6 @@ document.addEventListener("DOMContentLoaded", () => {
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(adsWatched);
     
-    // বাটন সক্রিয় করার লজিক এখানে আরও স্পষ্ট করা হয়েছে
     if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
       watchAdBtn.textContent = 'Waiting for timer to finish';
@@ -151,6 +156,27 @@ document.addEventListener("DOMContentLoaded", () => {
     referralLinkInput.value = `https://t.me/CoinBazar_bot?start=${code}`;
   };
 
+  // ======================= Referral Logic =======================
+  const awardReferralPoints = async (referrerCode) => {
+    if (!referrerCode) return;
+    try {
+      const usersRef = db.collection("users");
+      const querySnapshot = await usersRef.where("referralCode", "==", referrerCode).limit(1).get();
+      if (!querySnapshot.empty) {
+        const referrerDoc = querySnapshot.docs[0];
+        const referrerDocRef = referrerDoc.ref;
+        await updateDoc(referrerDocRef, {
+          points: increment(referralPoints)
+        });
+        console.log("Referral points awarded to:", referrerCode);
+      } else {
+        console.warn("Referrer not found with code:", referrerCode);
+      }
+    } catch (error) {
+      console.error("Error awarding referral points:", error);
+    }
+  };
+
   // ======================= Firestore Save/Load =======================
   const saveUserDataToFirebase = async () => {
     if (!firebaseUID) return;
@@ -169,7 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
         adsCooldownEnds: adCooldownEnds ? Timestamp.fromDate(adCooldownEnds) : null,
         taskTimers: timersToSave,
         referralCode: referralCodeInput.value || generateReferralCode(),
-        lastUpdated: serverNow()
+        lastUpdated: serverNow(),
+        hasReferrer: !!referrerCode,
       }, { merge: true });
     } catch (error) {
       console.error("Error saving data:", error);
@@ -191,12 +218,18 @@ document.addEventListener("DOMContentLoaded", () => {
           adCooldownEnds = null;
         }
         referralCodeInput.value = data.referralCode || generateReferralCode();
+        
+        if (referrerCode && !data.hasReferrer) {
+          await awardReferralPoints(referrerCode);
+          await saveUserDataToFirebase();
+        }
+
       } else {
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
         referralCodeInput.value = generateReferralCode();
-        await saveUserDataFromFirebase();
+        await saveUserDataToFirebase();
       }
       userNameDisplay.textContent = userName;
       welcomeUserNameDisplay.textContent = userName;
@@ -204,12 +237,10 @@ document.addEventListener("DOMContentLoaded", () => {
       updateAdsCounter();
       updateTaskButtons();
       
-      // এখানে টাইমার লজিকটি আরও স্পষ্ট করা হয়েছে
       if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
         const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
         startAdTimer(secondsLeft);
       } else {
-        // যদি কোoldown শেষ হয়ে যায়, তাহলে টাইমারটি বন্ধ করে দিন এবং Ads Count রিসেট করুন
         adsWatched = 0;
         adCooldownEnds = null;
         updateAdsCounter();
