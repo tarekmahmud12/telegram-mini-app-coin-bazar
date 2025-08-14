@@ -8,7 +8,7 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-// ==== তোমার Firebase কনফিগ (তুমিই আগে শেয়ার করেছিলে) ====
+// ==== Firebase কনফিগ Vercel থেকে লোড করা হচ্ছে ====
 const firebaseConfig = {
   apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc",
   authDomain: "coin-bazar-f3093.firebaseapp.com",
@@ -18,7 +18,6 @@ const firebaseConfig = {
   appId: "1:551875632672:web:55bdd11d4654bc4984a645",
   measurementId: "G-776LFTSXTP"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -28,20 +27,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------- DOM Elements ----------
   const navItems = document.querySelectorAll('.app-footer .nav-item');
   const pages = document.querySelectorAll('.main-content .page');
-
   const adWatchedCountSpan = document.getElementById('ad-watched-count');
   const adTimerSpan = document.getElementById('ad-timer');
-
   const totalPointsDisplay = document.getElementById('total-points');
   const userNameDisplay = document.getElementById('user-name-display');
   const welcomeUserNameDisplay = document.getElementById('welcome-user-name');
   const editNameBtn = document.getElementById('edit-name-btn');
-
   const adsLeftValue = document.getElementById('ads-left-value');
   const totalAdsWatched = document.getElementById('total-ads-watched');
   const welcomeAdsLeft = document.getElementById('welcome-ads-left');
   const watchAdBtn = document.querySelector('.watch-ad-btn');
-
   const taskButtons = document.querySelectorAll('.task-btn');
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
@@ -49,15 +44,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------- State ----------
   let adsWatched = 0;
   const maxAdsPerCycle = 10;
-  const adResetTimeInMinutes = 30;
+  const adResetTimeInMinutes = 15; // এখানে পরিবর্তন করা হয়েছে
   let adTimerInterval = null;
-  let adCooldownEnds = null; // Date or null
-
+  let adCooldownEnds = null;
   let totalPoints = 0;
   let userName = 'User';
   const pointsPerAd = 5;
   const pointsPerTask = 10;
-
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -66,8 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
   };
   const taskCooldownInHours = 1;
-  let taskTimers = {}; // { taskId: Date/Timestamp }
-
+  let taskTimers = {};
   let telegramId = null;
   let telegramUser = null;
 
@@ -98,50 +90,40 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ======================= Firebase Auth (Anonymous) =======================
-  let firebaseUID = null; // ডকুমেন্ট আইডি হিসেবে UID ব্যবহার হবে (Rules friendly)
+  let firebaseUID = null;
   signInAnonymously(auth).catch(err => {
     console.error("Anonymous sign-in failed:", err);
   });
-
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     firebaseUID = user.uid;
-    await loadUserDataFromFirebase(); // UID পাওয়ার পর ডাটা লোড
-    // Referral link আপডেট (bot link + code)
+    await loadUserDataFromFirebase();
     updateReferralLinkInput();
-    // Tasks UI refresh interval
     setInterval(updateTaskButtons, 1000);
   });
 
   // ======================= Firestore Helpers =======================
-  const usersDocRef = () => doc(db, "users", firebaseUID || "temp"); // UID সেট হওয়ার পরই কাজ করবে
-
+  const usersDocRef = () => doc(db, "users", firebaseUID || "temp");
   const serverNow = () => serverTimestamp();
-
   const toDate = (maybeTs) => {
     try {
       if (!maybeTs) return null;
       if (maybeTs instanceof Date) return maybeTs;
       if (maybeTs.toDate && typeof maybeTs.toDate === 'function') return maybeTs.toDate();
-      // Fallback parse
       return new Date(maybeTs);
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   };
 
   // ======================= UI Updates =======================
   const updatePointsDisplay = () => {
     totalPointsDisplay.textContent = String(totalPoints);
   };
-
   const updateAdsCounter = () => {
     const adsLeft = Math.max(0, maxAdsPerCycle - adsWatched);
     adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(adsWatched);
-
     if (adsWatched >= maxAdsPerCycle && adCooldownEnds) {
       watchAdBtn.disabled = true;
       watchAdBtn.textContent = 'Waiting for timer to finish';
@@ -150,7 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
       watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
     }
   };
-
   const switchPage = (pageId) => {
     pages.forEach(p => p.classList.remove('active'));
     document.getElementById(pageId)?.classList.add('active');
@@ -159,15 +140,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (item.dataset.page + '-page' === pageId) item.classList.add('active');
     });
   };
-
   const generateReferralCode = () => {
     const uniqueId = Math.floor(100000 + Math.random() * 900000);
     return `CB${uniqueId}`;
   };
-
   const updateReferralLinkInput = () => {
     const code = referralCodeInput.value || "CB123456";
-    // তোমার বট ইউজারনেম বসাও
     referralLinkInput.value = `https://t.me/CoinBazar_bot?start=${code}`;
   };
 
@@ -175,13 +153,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveUserDataToFirebase = async () => {
     if (!firebaseUID) return;
     try {
-      // taskTimers অবজেক্টে Date থাকলে Timestamp-এ কনভার্ট
       const timersToSave = {};
       Object.keys(taskTimers || {}).forEach(k => {
         const d = toDate(taskTimers[k]);
         if (d) timersToSave[k] = Timestamp.fromDate(d);
       });
-
       await setDoc(usersDocRef(), {
         firebaseUID,
         telegramId,
@@ -193,16 +169,12 @@ document.addEventListener("DOMContentLoaded", () => {
         referralCode: referralCodeInput.value || generateReferralCode(),
         lastUpdated: serverNow()
       }, { merge: true });
-
-      // console.log("User data saved");
     } catch (error) {
       console.error("Error saving data:", error);
     }
   };
-
   const loadUserDataFromFirebase = async () => {
     if (!firebaseUID) return;
-
     try {
       const snap = await getDoc(usersDocRef());
       if (snap.exists()) {
@@ -211,38 +183,28 @@ document.addEventListener("DOMContentLoaded", () => {
         totalPoints = data.points || 0;
         adsWatched = data.adsWatched || 0;
         taskTimers = data.taskTimers || {};
-
-        // cooldown restore
         if (data.adsCooldownEnds) {
           adCooldownEnds = toDate(data.adsCooldownEnds);
         } else {
           adCooldownEnds = null;
         }
-
-        // referral code
         referralCodeInput.value = data.referralCode || generateReferralCode();
       } else {
-        // New user
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
         referralCodeInput.value = generateReferralCode();
         await saveUserDataToFirebase();
       }
-
-      // UI sync
       userNameDisplay.textContent = userName;
       welcomeUserNameDisplay.textContent = userName;
       updatePointsDisplay();
       updateAdsCounter();
       updateTaskButtons();
-
-      // if cooldown running
       if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
         const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
         startAdTimer(secondsLeft);
       } else if (adsWatched >= maxAdsPerCycle) {
-        // safety: if no cooldown saved but ads maxed, start a fresh cooldown
         adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
         startAdTimer(adResetTimeInMinutes * 60);
         saveUserDataToFirebase();
@@ -258,13 +220,11 @@ document.addEventListener("DOMContentLoaded", () => {
     taskButtons.forEach(button => {
       const taskId = button.dataset.taskId;
       let cooldownEndTime = null;
-
       const saved = taskTimers[taskId];
       if (saved) {
         const d = toDate(saved);
         if (d) cooldownEndTime = d.getTime();
       }
-
       if (cooldownEndTime && now < cooldownEndTime) {
         const timeLeft = Math.floor((cooldownEndTime - now) / 1000);
         const hours = Math.floor(timeLeft / 3600);
@@ -278,25 +238,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   };
-
   taskButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = taskUrls[taskId];
-
       button.textContent = 'Please wait 10 seconds...';
       button.disabled = true;
-
       const newWindow = window.open(taskUrl, '_blank');
       setTimeout(async () => {
         try { if (newWindow) newWindow.close(); } catch {}
         alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
         totalPoints += pointsPerTask;
         updatePointsDisplay();
-
         const cooldownEnds = new Date(Date.now() + taskCooldownInHours * 60 * 60 * 1000);
         taskTimers[taskId] = cooldownEnds;
-
         await saveUserDataToFirebase();
         updateTaskButtons();
       }, 10000);
@@ -321,7 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('Copied to clipboard!');
     });
   });
-
   document.querySelector('.share-btn').addEventListener('click', () => {
     const referralLink = referralLinkInput.value;
     if (navigator.share) {
@@ -338,11 +292,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================= Withdraw =======================
   document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const amount = Number(document.getElementById('amount').value || 0);
     const paymentMethod = document.getElementById('payment-method').value;
     const accountId = document.getElementById('account-id').value.trim();
-
     if (amount < 1000) {
       alert('Minimum withdrawal is 1000 points.');
       return;
@@ -351,7 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('Not enough points.');
       return;
     }
-
     const payload = {
       userName,
       telegramId,
@@ -360,14 +311,12 @@ document.addEventListener("DOMContentLoaded", () => {
       paymentMethod,
       accountId
     };
-
     try {
       const res = await fetch('/withdraw-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
       if (res.ok) {
         alert('Withdrawal request submitted successfully!');
         e.target.reset();
@@ -388,10 +337,8 @@ document.addEventListener("DOMContentLoaded", () => {
     nameInput.value = currentName;
     nameInput.className = 'user-name-input';
     nameInput.maxLength = 20;
-
     userNameDisplay.replaceWith(nameInput);
     nameInput.focus();
-
     const saveName = async () => {
       const newName = nameInput.value.trim() || 'User';
       userName = newName;
@@ -400,7 +347,6 @@ document.addEventListener("DOMContentLoaded", () => {
       nameInput.replaceWith(userNameDisplay);
       await saveUserDataToFirebase();
     };
-
     nameInput.addEventListener('blur', saveName);
     nameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') saveName();
@@ -412,9 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let timeLeft = Math.ceil(initialSeconds);
     adTimerSpan.textContent = formatTime(timeLeft);
     watchAdBtn.disabled = true;
-
     if (adTimerInterval) clearInterval(adTimerInterval);
-
     adTimerInterval = setInterval(async () => {
       timeLeft--;
       adTimerSpan.textContent = formatTime(timeLeft);
@@ -428,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }, 1000);
   };
-
   const formatTime = (seconds) => {
     if (seconds <= 0) return 'Ready!';
     const minutes = Math.floor(seconds / 60);
@@ -442,7 +385,6 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
-
     if (typeof window.show_9673543 === 'function') {
       try {
         await window.show_9673543();
@@ -450,7 +392,6 @@ document.addEventListener("DOMContentLoaded", () => {
         totalPoints += pointsPerAd;
         updateAdsCounter();
         updatePointsDisplay();
-
         if (adsWatched >= maxAdsPerCycle) {
           adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
           startAdTimer();
@@ -469,13 +410,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Init (UI defaults) =======================
-  // প্রথমবার UI সেট
   userNameDisplay.textContent = userName;
   welcomeUserNameDisplay.textContent = userName;
   updatePointsDisplay();
   updateAdsCounter();
-
-  // ন্যাভিগেশন ডিফল্ট
   navItems.forEach(item => {
     const pageId = item.dataset.page + '-page';
     if (item.classList.contains('active')) switchPage(pageId);
