@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let userName = 'User';
   const pointsPerAd = 5;
   const pointsPerTask = 10;
-  const referralPoints = 200; // এখানে রেফারেল পয়েন্ট 200 করা হয়েছে
+  const referralPoints = 200;
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -408,27 +408,21 @@ document.addEventListener("DOMContentLoaded", () => {
       totalPoints -= minimumPoints;
       updatePointsDisplay();
 
-      // Telegram-এ মেসেজ পাঠানো হচ্ছে
-      const telegramPayload = {
-        chat_id: '5932597801', // টার্গেট ইউজার ID
-        text: `💰 **New Withdraw Request** 💰\n\n` +
-              `👤 **User:** ${userName} (@${telegramUser.username})\n` +
-              `🆔 **Telegram ID:** ${telegramId}\n` +
-              `💳 **Payment Method:** ${paymentMethod}\n` +
-              `💵 **Amount:** ${minimumPoints} Points\n` +
-              `🔢 **Account ID:** ${accountId}\n\n` +
-              `_This request was automatically sent from the Coin Bazar Mini App._`,
-        parse_mode: 'Markdown'
-      };
-
-      await fetch(`https://api.telegram.org/bot7253504381:AAH8u8i4oQn2Q1KxH8T7j7pWfH7g4F8S8S8/sendMessage`, {
+      // Vercel API Function-এ মেসেজ পাঠানোর জন্য রিকোয়েস্ট পাঠানো হচ্ছে
+      const res = await fetch('https://telegram-mini-app-admin-panel.vercel.app/api/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(telegramPayload)
+        body: JSON.stringify(payload)
       });
       
-      alert('Withdrawal request submitted successfully!');
-      e.target.reset();
+      const result = await res.json();
+      if (res.ok) {
+        alert('Withdrawal request submitted successfully!');
+        e.target.reset();
+      } else {
+        console.error('API Error:', result.error);
+        alert('Failed to submit withdrawal request. Please try again.');
+      }
 
     } catch (error) {
       console.error('Error submitting withdrawal request:', error);
