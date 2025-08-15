@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
-  serverTimestamp, Timestamp, increment
+  serverTimestamp, Timestamp, increment, FieldValue
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, onAuthStateChanged
@@ -40,6 +40,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const taskButtons = document.querySelectorAll('.task-btn');
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
+  
+  // Withdraw UI elements
+  const withdrawForm = document.getElementById('withdraw-form');
+  const paymentMethodSelect = document.getElementById('payment-method');
+  const amountInput = document.getElementById('amount');
+  const withdrawMessageSpan = document.getElementById('withdraw-message');
 
   // ---------- State ----------
   let adsWatched = 0;
@@ -329,44 +335,107 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Withdraw =======================
-  document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+  // Payment Method সিলেক্ট পরিবর্তন হলে মেসেজ আপডেট করবে
+  paymentMethodSelect.addEventListener('change', () => {
+    const method = paymentMethodSelect.value;
+    if (method === 'bkash' || method === 'nagad') {
+      withdrawMessageSpan.textContent = 'Minimum 10,000 points are required for Mobile Banking withdrawal.';
+      amountInput.placeholder = "Enter amount (min 10000)";
+      amountInput.value = '';
+    } else if (method === 'grameenphone' || method === 'robi' || method === 'jio' || method === 'airtel' || method === 'banglalink' || method === 'teletalk') {
+      withdrawMessageSpan.textContent = 'Minimum 2,000 points are required for Mobile Recharge.';
+      amountInput.placeholder = "Enter amount (min 2000)";
+      amountInput.value = '';
+    } else if (method === 'binance' || method === 'webmoney') {
+      withdrawMessageSpan.textContent = 'Minimum 100,000 points are required for International Banking withdrawal.';
+      amountInput.placeholder = "Enter amount (min 100000)";
+      amountInput.value = '';
+    } else {
+      withdrawMessageSpan.textContent = '';
+      amountInput.placeholder = "Enter amount (points)";
+    }
+  });
+
+  withdrawForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const amount = Number(document.getElementById('amount').value || 0);
-    const paymentMethod = document.getElementById('payment-method').value;
+    const paymentMethod = paymentMethodSelect.value;
+    const amount = Number(amountInput.value || 0);
     const accountId = document.getElementById('account-id').value.trim();
-    if (amount < 1000) {
-      alert('Minimum withdrawal is 1000 points.');
+    let minimumPoints = 0;
+
+    // মিনিমাম পয়েন্ট চেক করা হচ্ছে
+    if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
+      minimumPoints = 10000;
+    } else if (paymentMethod === 'grameenphone' || paymentMethod === 'robi' || paymentMethod === 'jio' || paymentMethod === 'airtel' || paymentMethod === 'banglalink' || paymentMethod === 'teletalk') {
+      minimumPoints = 2000;
+    } else if (paymentMethod === 'binance' || paymentMethod === 'webmoney') {
+      minimumPoints = 100000;
+    } else {
+      alert('Please select a valid payment method.');
       return;
     }
+
+    if (totalPoints < minimumPoints) {
+      alert(`Not enough points. Minimum withdrawal is ${minimumPoints} points.`);
+      return;
+    }
+
     if (amount > totalPoints) {
-      alert('Not enough points.');
+      alert('The amount you entered is more than your total points.');
       return;
     }
+    
+    // অটোমেটিক মিনিমাম পয়েন্ট কেটে নেওয়া হচ্ছে
+    if (amount < minimumPoints) {
+      alert(`The amount you entered is less than the minimum withdrawal amount of ${minimumPoints} points.`);
+      return;
+    }
+
     const payload = {
       userName,
       telegramId,
       firebaseUID,
-      amount,
+      amount: minimumPoints, // শুধুমাত্র মিনিমাম পয়েন্ট কাটা হবে
       paymentMethod,
       accountId
     };
+
     try {
-      const res = await fetch('/withdraw-request', {
+      // Firebase থেকে পয়েন্ট মাইনাস করা হচ্ছে
+      await updateDoc(usersDocRef(), {
+        points: FieldValue.increment(-minimumPoints)
+      });
+      totalPoints -= minimumPoints;
+      updatePointsDisplay();
+
+      // Telegram-এ মেসেজ পাঠানো হচ্ছে
+      const telegramPayload = {
+        chat_id: '5932597801', // টার্গেট ইউজার ID
+        text: `💰 **New Withdraw Request** 💰\n\n` +
+              `👤 **User:** ${userName} (@${telegramUser.username})\n` +
+              `🆔 **Telegram ID:** ${telegramId}\n` +
+              `💳 **Payment Method:** ${paymentMethod}\n` +
+              `💵 **Amount:** ${minimumPoints} Points\n` +
+              `🔢 **Account ID:** ${accountId}\n\n` +
+              `_This request was automatically sent from the Coin Bazar Mini App._`,
+        parse_mode: 'Markdown'
+      };
+
+      await fetch(`https://api.telegram.org/bot7253504381:AAH8u8i4oQn2Q1KxH8T7j7pWfH7g4F8S8S8/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(telegramPayload)
       });
-      if (res.ok) {
-        alert('Withdrawal request submitted successfully!');
-        e.target.reset();
-      } else {
-        alert('Failed to submit withdrawal request. Please try again.');
-      }
+      
+      alert('Withdrawal request submitted successfully!');
+      e.target.reset();
+
     } catch (error) {
       console.error('Error submitting withdrawal request:', error);
       alert('An error occurred. Please check your connection and try again.');
     }
   });
+
 
   // ======================= Name Edit =======================
   editNameBtn.addEventListener('click', () => {

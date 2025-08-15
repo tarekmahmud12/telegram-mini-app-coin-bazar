@@ -6,10 +6,8 @@
   <title>Coin Bazar</title>
   <link rel="stylesheet" href="style.css"/>
 
-  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Monetag / Ad SDK (show_9673543 ফাংশন ব্যবহার হবে) -->
   <script src="//libtl.com/sdk.js" data-zone="9673543" data-sdk="show_9673543"></script>
 </head>
 <body>
@@ -69,7 +67,7 @@
         </div>
         <div class="watch-ads-card card">
           <h2>Watch Ads</h2>
-          <p>Watch short video ads to earn points. You can watch up to 10 ads every 15 minutes.</p>
+          <p>Watch short video ads to earn points. You can watch up to 10 ads every 30 minutes.</p>
           <p class="points-rule">Each ad rewards you with 5 points.</p>
           <div class="ad-progress">
             <span id="ad-watched-count">0/10 watched</span>
@@ -124,34 +122,33 @@
       <section id="withdraw-page" class="page">
         <div class="withdraw-card card">
           <h2>Withdraw</h2>
-          <p>Convert your points to real money. Minimum withdrawal is 2000 points.</p>
+          <p class="withdraw-message" id="withdraw-message"></p>
           <form id="withdraw-form">
-            <div class="form-group">
-              <label for="amount">Amount (Points)</label>
-              <input type="number" id="amount" placeholder="Enter amount" required>
-            </div>
             <div class="form-group">
               <label for="payment-method">Payment Method</label>
               <select id="payment-method" required>
                 <option value="" disabled selected>Select method</option>
-                <optgroup label="Direct Payments">
+                <optgroup label="Mobile Banking">
                   <option value="bkash">Bkash</option>
                   <option value="nagad">Nagad</option>
-                </optgroup>
-                <optgroup label="International">
-                  <option value="bank">Bank</option>
-                  <option value="binance">Binance</option>
-                  <option value="paypal">PayPal</option>
-                  <option value="payoneer">Payoneer</option>
-                  <option value="webmoney">WebMoney</option>
                 </optgroup>
                 <optgroup label="Mobile Recharge">
                   <option value="grameenphone">Grameenphone</option>
                   <option value="robi">Robi</option>
+                  <option value="jio">Jio</option>
                   <option value="airtel">Airtel</option>
                   <option value="banglalink">Banglalink</option>
+                  <option value="teletalk">Teletalk</option>
+                </optgroup>
+                <optgroup label="International Banking">
+                  <option value="binance">Binance</option>
+                  <option value="webmoney">Webmoney</option>
                 </optgroup>
               </select>
+            </div>
+            <div class="form-group">
+              <label for="amount">Amount (Points)</label>
+              <input type="number" id="amount" placeholder="Enter amount (points)" required>
             </div>
             <div class="form-group">
               <label for="account-id">Account Number/ID</label>
@@ -165,7 +162,7 @@
       <section id="referral-page" class="page">
         <div class="referral-card card">
           <h2>Refer & Earn</h2>
-          <p>Invite friends and earn 200 points. If they successfully join, you'll get an additional 200 points!</p>
+          <p>Invite friends and earn 100 points. If they successfully join, you'll get an additional 200 points!</p>
           <div class="referral-item">
             <label for="referral-code">Your Referral Code</label>
             <div class="input-with-btn">
@@ -219,7 +216,6 @@
     </footer>
   </div>
 
-  <!-- তোমার main JS (Firebase v12 + সব লজিক) -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
