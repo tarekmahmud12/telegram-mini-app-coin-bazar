@@ -79,6 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let telegramId = null;
   let telegramUser = null;
   let referrerCode = null;
+  
+  const TELEGRAM_BOT_TOKEN = '7812568979:AAGHvXfEufrcDBopGtGCPAmsFVIBWelFz3g';
+  const ADMIN_TELEGRAM_ID = '5932597801';
 
   // ======================= Telegram Init =======================
   try {
@@ -378,82 +381,75 @@ document.addEventListener("DOMContentLoaded", () => {
     const paymentMethod = paymentMethodSelect.value;
     const amount = Number(amountInput.value || 0);
     const accountId = document.getElementById('account-id').value.trim();
-    let minimumPoints = 0;
 
-    if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
-      minimumPoints = 10000;
-    } else if (paymentMethod === 'grameenphone' || paymentMethod === 'robi' || paymentMethod === 'jio' || paymentMethod === 'airtel' || paymentMethod === 'banglalink' || paymentMethod === 'teletalk') {
-      minimumPoints = 2000;
-    } else if (paymentMethod === 'binance' || paymentMethod === 'webmoney') {
-      minimumPoints = 100000;
-    } else {
-      alert('Please select a valid payment method.');
-      return;
-    }
-
-    if (totalPoints < minimumPoints) {
-      alert(`Not enough points. Minimum withdrawal is ${minimumPoints} points.`);
-      return;
-    }
-
-    if (amount > totalPoints) {
-      alert('The amount you entered is more than your total points.');
-      return;
+    if (!paymentMethod || amount <= 0 || !accountId) {
+        alert('Please fill out all fields correctly.');
+        return;
     }
     
-    if (amount < minimumPoints) {
-      alert(`The amount you entered is less than the minimum withdrawal amount of ${minimumPoints} points.`);
-      return;
+    // Check if user has enough points
+    if (totalPoints < amount) {
+        alert(`Not enough points. You only have ${totalPoints} points.`);
+        return;
     }
 
-    const withdrawalDoc = doc(withdrawalsCollectionRef());
-    const withdrawalData = {
-      firebaseUID: firebaseUID,
-      telegramId: telegramId,
-      userName: userName,
-      amount: minimumPoints,
-      paymentMethod: paymentMethod,
-      accountId: accountId,
-      timestamp: serverNow(),
-      status: 'pending'
+    const payload = {
+      userName,
+      telegramId,
+      firebaseUID,
+      amount: amount,
+      paymentMethod,
+      accountId
     };
-    await setDoc(withdrawalDoc, withdrawalData);
 
     try {
+      // 1. Point minus from Firebase
       await updateDoc(usersDocRef(), {
-        points: FieldValue.increment(-minimumPoints),
+        points: FieldValue.increment(-amount),
         totalWithdrawalsCount: FieldValue.increment(1),
-        totalPointsWithdrawn: FieldValue.increment(minimumPoints)
+        totalPointsWithdrawn: FieldValue.increment(amount)
       });
-      totalPoints -= minimumPoints;
+      
+      // Update local state
+      totalPoints -= amount;
       updatePointsDisplay();
-    } catch (error) {
-      console.error("Error updating user stats:", error);
-      alert("An error occurred while updating your points. Please contact support.");
-      return;
-    }
 
-    const telegramPayload = {
-      chat_id: '5932597801',
-      text: `💰 **New Withdraw Request** 💰\n\n` +
-            `👤 **User:** ${userName} (@${telegramUser.username})\n` +
-            `🆔 **Telegram ID:** ${telegramId}\n` +
-            `💳 **Payment Method:** ${paymentMethod}\n` +
-            `💵 **Amount:** ${minimumPoints} Points\n` +
-            `🔢 **Account ID:** ${accountId}\n\n` +
-            `_This request was automatically sent from the Coin Bazar Mini App._`,
-      parse_mode: 'Markdown'
-    };
+      // 2. Save withdrawal request to Firestore
+      const withdrawalDoc = doc(withdrawalsCollectionRef());
+      await setDoc(withdrawalDoc, {
+        firebaseUID: firebaseUID,
+        telegramId: telegramId,
+        userName: userName,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        accountId: accountId,
+        timestamp: serverNow(),
+        status: 'pending'
+      });
+      
+      // 3. Send message to your Telegram ID
+      const telegramPayload = {
+        chat_id: ADMIN_TELEGRAM_ID,
+        text: `💰 **New Withdraw Request** 💰\n\n` +
+              `👤 **User:** ${userName} (@${telegramUser.username || 'N/A'})\n` +
+              `🆔 **Telegram ID:** ${telegramId}\n` +
+              `💳 **Payment Method:** ${paymentMethod}\n` +
+              `💵 **Amount:** ${amount} Points\n` +
+              `🔢 **Account ID:** ${accountId}\n\n` +
+              `_This request was automatically sent from the Coin Bazar Mini App._`,
+        parse_mode: 'Markdown'
+      };
 
-    try {
-      await fetch(`https://api.telegram.org/bot7253504381:AAH8u8i4oQn2Q1KxH8T7j7pWfH7g4F8S8S8/sendMessage`, {
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(telegramPayload)
       });
+      
       alert('Withdrawal request submitted successfully!');
       e.target.reset();
-      loadWithdrawalHistory();
+      loadWithdrawalHistory(); // Refresh history
+      
     } catch (error) {
       console.error('Error submitting withdrawal request:', error);
       alert('An error occurred. Please check your connection and try again.');
