@@ -55,6 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const withdrawalHistoryList = document.getElementById('withdrawal-history-list');
   const totalWithdrawalsCount = document.getElementById('total-withdrawals-count');
   const totalPointsWithdrawn = document.getElementById('total-points-withdrawn');
+  
+  // Referral UI elements
+  const shareBtn = document.querySelector('.share-btn');
+  const referralCountDisplay = document.getElementById('referral-count');
+  const referralPointsEarnedDisplay = document.getElementById('referral-points-earned');
 
   // ---------- State ----------
   let adsWatched = 0;
@@ -66,12 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let userName = 'User';
   const pointsPerAd = 5;
   const pointsPerTask = 10;
-  const referralPoints = 200;
+  const referrerPoints = 200; // রেফারকারী পাবে
+  const newUserPoints = 100; // নতুন ইউজার পাবে
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b6d7d99d8d92682690909edc3',
     '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
   };
   const taskCooldownInHours = 1;
@@ -92,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (referrerCode) {
         console.log("Referrer code found:", referrerCode);
       }
-      // Check for Telegram profile picture URL
       if (telegramUser?.photo_url) {
         profilePic.src = telegramUser.photo_url;
       }
@@ -128,7 +133,6 @@ document.addEventListener("DOMContentLoaded", () => {
     await loadUserDataFromFirebase();
     updateReferralLinkInput();
     setInterval(updateTaskButtons, 1000);
-    loadWithdrawalHistory();
   });
 
   // ======================= Firestore Helpers =======================
@@ -163,6 +167,10 @@ document.addEventListener("DOMContentLoaded", () => {
       watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
     }
   };
+  const updateReferralStats = (referralCount, pointsEarned) => {
+      referralCountDisplay.textContent = referralCount;
+      referralPointsEarnedDisplay.textContent = pointsEarned;
+  };
   const switchPage = (pageId) => {
     pages.forEach(p => p.classList.remove('active'));
     document.getElementById(pageId)?.classList.add('active');
@@ -191,7 +199,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const referrerDoc = querySnapshot.docs[0];
         const referrerDocRef = referrerDoc.ref;
         await updateDoc(referrerDocRef, {
-          points: increment(referralPoints)
+          points: increment(referrerPoints),
+          referralCount: increment(1),
+          referralPointsEarned: increment(referrerPoints)
         });
         console.log("Referral points awarded to:", referrerCode);
       } else {
@@ -222,6 +232,8 @@ document.addEventListener("DOMContentLoaded", () => {
         referralCode: referralCodeInput.value || generateReferralCode(),
         lastUpdated: serverNow(),
         hasReferrer: !!referrerCode,
+        referralCount: 0,
+        referralPointsEarned: 0
       }, { merge: true });
     } catch (error) {
       console.error("Error saving data:", error);
@@ -244,16 +256,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         referralCodeInput.value = data.referralCode || generateReferralCode();
         
+        // Award points to new user if referred
         if (referrerCode && !data.hasReferrer) {
+          totalPoints += newUserPoints;
           await awardReferralPoints(referrerCode);
           await saveUserDataToFirebase();
         }
+        
+        // Update referral stats
+        updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
 
       } else {
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
         referralCodeInput.value = generateReferralCode();
+        totalPoints = referrerCode ? newUserPoints : 0;
         await saveUserDataToFirebase();
       }
       userNameDisplay.textContent = userName;
@@ -343,16 +361,25 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('Copied to clipboard!');
     });
   });
-  document.querySelector('.share-btn').addEventListener('click', () => {
+  
+  // Update Share link button logic
+  shareBtn.addEventListener('click', () => {
     const referralLink = referralLinkInput.value;
+    const shareText = `Join Coin Bazar Mini App and earn daily rewards! Use my referral link to get a bonus of ${newUserPoints} points. My referral code is: ${referralCodeInput.value}\n\n${referralLink}`;
+    
     if (navigator.share) {
       navigator.share({
-        title: 'Coin Bazar Referral',
-        text: 'Join Coin Bazar and earn points!',
-        url: referralLink,
-      }).catch(() => {});
+        title: 'Join Coin Bazar',
+        text: shareText,
+      }).catch(error => {
+        console.error('Error sharing:', error);
+      });
     } else {
-      alert('Web Share API is not supported in this browser.');
+      // Fallback for browsers that don't support Web Share API
+      alert('Your browser does not support the Web Share API. Please copy the link manually.');
+      // Fallback to copy the link to clipboard
+      referralLinkInput.select();
+      document.execCommand('copy');
     }
   });
 
