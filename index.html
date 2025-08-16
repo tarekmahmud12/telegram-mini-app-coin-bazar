@@ -1,412 +1,186 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coin Bazar</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --main-color: #2c2c2c;
-            --text-color: #f0f0f0;
-            --accent-color: #007bff;
-            --button-bg: #4a4a4a;
-            --button-hover-bg: #5a5a5a;
-            --nav-bg: #222;
-            --nav-item-active: #007bff;
-            --border-color: #3a3a3a;
-            --pending-color: #ffc107;
-            --completed-color: #28a745;
-            --failed-color: #dc3545;
-        }
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .app-container {
-            width: 100%;
-            max-width: 400px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--main-color);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        }
-        .main-content {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .page {
-            display: none;
-        }
-        .page.active {
-            display: block;
-        }
-        .page-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .page-header h1 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-        }
-        .user-info {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .user-info .user-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: var(--button-bg);
-            margin-bottom: 10px;
-            display: inline-block;
-        }
-        .user-name {
-            font-size: 1.5rem;
-            font-weight: 500;
-            display: inline-block;
-            margin: 0;
-        }
-        .user-name-input {
-            font-size: 1.5rem;
-            font-weight: 500;
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            border-radius: 8px;
-            padding: 5px 10px;
-            margin: 0;
-            width: calc(100% - 22px);
-            box-sizing: border-box;
-        }
-        .edit-name-btn {
-            background: none;
-            border: none;
-            color: var(--accent-color);
-            cursor: pointer;
-            font-size: 1rem;
-            margin-left: 10px;
-        }
-        .points-balance {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--accent-color);
-            margin-top: 10px;
-        }
-        .section-header {
-            font-size: 1.2rem;
-            font-weight: 500;
-            margin-top: 20px;
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 5px;
-        }
-        .task-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-        }
-        .ad-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background-color: var(--button-bg);
-            border-radius: 12px;
-        }
-        .ad-counter {
-            font-size: 1rem;
-            margin-bottom: 5px;
-        }
-        .ad-timer {
-            font-size: 0.9rem;
-            color: #aaa;
-            margin-bottom: 15px;
-        }
-        .ad-section .watch-ad-btn {
-            background-color: var(--accent-color);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            width: 100%;
-        }
-        .ad-section .watch-ad-btn:disabled {
-            background-color: #666;
-            cursor: not-allowed;
-        }
-        .task-btn {
-            background-color: var(--button-bg);
-            color: var(--text-color);
-            padding: 15px;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background-color 0.2s;
-            text-align: center;
-        }
-        .task-btn:disabled {
-            background-color: #333;
-            color: #777;
-            cursor: not-allowed;
-        }
-        .referral-section .info-box {
-            background-color: var(--button-bg);
-            border-radius: 12px;
-            padding: 15px;
-        }
-        .referral-section .info-box p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-        .referral-input-group {
-            display: flex;
-            margin-top: 10px;
-        }
-        .referral-input-group input {
-            flex-grow: 1;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            background-color: #333;
-            color: var(--text-color);
-            border-radius: 8px 0 0 8px;
-            font-size: 0.9rem;
-        }
-        .referral-input-group .btn {
-            padding: 10px 15px;
-            border: none;
-            cursor: pointer;
-            background-color: var(--accent-color);
-            color: white;
-            font-size: 0.9rem;
-        }
-        .referral-input-group .copy-btn {
-            border-radius: 0 8px 8px 0;
-        }
-        .referral-input-group .share-btn {
-            border-radius: 8px;
-            margin-left: 10px;
-        }
-        .form-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-        .form-group label {
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-        .form-group input, .form-group select {
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background-color: #333;
-            color: var(--text-color);
-            font-size: 1rem;
-        }
-        .form-container .submit-btn {
-            background-color: var(--accent-color);
-            color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .form-container .submit-btn:disabled {
-            background-color: #666;
-            cursor: not-allowed;
-        }
-        .history-section {
-            margin-top: 30px;
-        }
-        .history-section h3 {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-        }
-        .history-section p {
-            font-size: 0.9rem;
-            margin-top: 0;
-        }
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .history-item {
-            background-color: #333;
-            padding: 15px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .history-item .item-info p {
-            margin: 0;
-        }
-        .history-item .status-pending {
-            color: var(--pending-color);
-            font-weight: bold;
-        }
-        .history-item .status-completed {
-            color: var(--completed-color);
-            font-weight: bold;
-        }
-        .history-item .status-failed {
-            color: var(--failed-color);
-            font-weight: bold;
-        }
-        .history-list .history-item:last-child {
-            margin-bottom: 0;
-        }
-        #no-history-message {
-            text-align: center;
-            color: #888;
-            margin-top: 20px;
-        }
-        .app-footer {
-            width: 100%;
-            background-color: var(--nav-bg);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            border-top: 1px solid var(--border-color);
-        }
-        .app-footer .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: #888;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .app-footer .nav-item.active {
-            color: var(--nav-item-active);
-        }
-        .app-footer .nav-item i {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="script.js" type="module"></script>
+    <script async="async" data-cfasync="false" src="//pl23423403.highcpmgate.com/83/87/40/83874057e0f27914e9f54668df21b6d0.js"></script>
 </head>
 <body>
-
-<div class="app-container">
-    <div class="main-content">
-        <section id="home-page" class="page active">
-            <div class="page-header">
-                <p id="welcome-user-name" class="user-name">Hello, User</p>
+    <div class="app-container">
+        <div class="app-header">
+            <div class="header-top">
+                <h1 class="app-name">Coin Bazar</h1>
+                <i class="fas fa-bell icon"></i>
             </div>
-
-            <div class="user-info">
-                <span class="user-avatar"></span>
-                <div>
-                    <span id="user-name-display" class="user-name">User</span>
-                    <button id="edit-name-btn" class="edit-name-btn">Edit</button>
+            <div class="profile-card">
+                <div class="profile-info">
+                    <img src="https://i.ibb.co/C0b87sX/icon.png" alt="Profile Picture" class="profile-pic">
+                    <div class="user-details">
+                        <span id="user-name-display" class="user-name">User</span>
+                        <i id="edit-name-btn" class="fas fa-edit edit-icon"></i>
+                        <span class="verify-badge">Verified</span>
+                    </div>
                 </div>
-                <div class="points-balance">
-                    <span id="total-points">0</span> Points
-                </div>
-            </div>
-
-            <div class="ad-section">
-                <p class="ad-counter">Ads Watched: <span id="ad-watched-count">0</span></p>
-                <p class="ad-timer">Next ad in: <span id="ad-timer">--:--</span></p>
-                <button class="watch-ad-btn">Watch Ad & Earn 5 Points</button>
-            </div>
-
-            <h2 class="section-header">Tasks</h2>
-            <div class="task-grid">
-                </div>
-            
-            <h2 class="section-header">Refer & Earn</h2>
-            <div class="referral-section">
-                <div class="info-box">
-                    <p>Refer your friends and earn <span class="highlight">200 points</span> when they join!</p>
-                    <div class="referral-input-group">
-                        <input type="text" id="referral-link" readonly value="https://t.me/CoinBazar_bot?start=CB123456">
-                        <button class="btn share-btn">Share</button>
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <span id="total-points" class="stat-value">0</span>
+                        <span class="stat-label">Total Points</span>
+                    </div>
+                    <div class="stat-item">
+                        <span id="ads-left-value" class="stat-value">0</span>
+                        <span class="stat-label">Ads Left</span>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section id="withdraw-page" class="page">
-            <div class="page-header">
-                <h1>Withdraw</h1>
-                <span id="withdraw-message"></span>
-            </div>
-            <form id="withdraw-form" class="form-container">
-                <div class="form-group">
-                    <label for="payment-method">Payment Method</label>
-                    <select id="payment-method">
-                        <option value="bkash">Bkash</option>
-                        <option value="nagad">Nagad</option>
-                        <option value="grameenphone">Grameenphone</option>
-                        <option value="robi">Robi</option>
-                        <option value="airtel">Airtel</option>
-                        <option value="banglalink">Banglalink</option>
-                        <option value="teletalk">Teletalk</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="account-id">Account Number</label>
-                    <input type="text" id="account-id" placeholder="Enter your account number" required>
-                </div>
-                <div class="form-group">
-                    <label for="amount">Points to Withdraw</label>
-                    <input type="number" id="amount" placeholder="Enter amount (points)" required>
-                </div>
-                <button type="submit" class="submit-btn">Submit Request</button>
-            </form>
-            
-            <div class="history-section">
-                <h3>My Withdrawal History</h3>
-                <p>Total successful: <span id="successful-count">0</span></p>
-                <p>Total pending: <span id="pending-count">0</span></p>
-                <div id="withdrawal-history-list" class="history-list">
+        <div class="main-content">
+            <div class="page active" id="home-page">
+                <div class="card">
+                    <h2>Welcome to Coin Bazar!</h2>
+                    <p>Hello, <span id="welcome-user-name">User</span>. Start earning points by watching ads and completing simple tasks.</p>
+                    <div class="welcome-stats">
+                        <div class="stat-item">
+                            <span id="total-ads-watched" class="stat-value">0</span>
+                            <span class="stat-label">Total Ads Watched</span>
+                        </div>
+                        <div class="stat-item">
+                            <span id="welcome-ads-left" class="stat-value">0</span>
+                            <span class="stat-label">Ads Left</span>
+                        </div>
                     </div>
-                <p id="no-history-message" style="display: none;">No withdrawal requests found.</p>
+                </div>
+                
+                <div class="card ad-section">
+                    <h2>Watch Ads</h2>
+                    <p class="ad-progress">
+                        <span id="ad-watched-count">0/10 watched</span>
+                        <span id="ad-timer">Ready!</span>
+                    </p>
+                    <button class="watch-ad-btn">Watch Ad & Earn 5 Points</button>
+                    <p class="points-rule">You can watch 10 ads every 15 minutes.</p>
+                </div>
             </div>
-        </section>
+
+            <div class="page" id="tasks-page">
+                <div class="card">
+                    <h2>Daily Tasks</h2>
+                    <p class="task-rules">Earn points by completing these quick tasks. Each task can be done once every hour.</p>
+                    <div class="task-buttons">
+                        <button class="task-btn" data-task-id="1">Task 1: +10 Points</button>
+                        <button class="task-btn" data-task-id="2">Task 2: +10 Points</button>
+                        <button class="task-btn" data-task-id="3">Task 3: +10 Points</button>
+                        <button class="task-btn" data-task-id="4">Task 4: +10 Points</button>
+                        <button class="task-btn" data-task-id="5">Task 5: +10 Points</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Bonus Task</h2>
+                    <div class="bonus-item">
+                        <span>Join Telegram Channel</span>
+                        <a href="https://t.me/coinbazar_bot" target="_blank">
+                            <button class="join-btn">Join</button>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="referral-page">
+                <div class="card">
+                    <h2>Refer & Earn</h2>
+                    <p>Share your referral link with friends and earn 200 points for each new user who signs up using your link.</p>
+                    <div class="form-group">
+                        <label for="referral-code">Your Referral Code</label>
+                        <div class="input-with-btn">
+                            <input type="text" id="referral-code" value="CB123456" readonly>
+                            <button class="copy-btn">Copy</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="referral-link">Your Referral Link</label>
+                        <div class="input-with-btn">
+                            <input type="text" id="referral-link" value="https://t.me/CoinBazar_bot?start=CB123456" readonly>
+                            <button class="copy-btn">Copy</button>
+                        </div>
+                    </div>
+                    <button class="share-btn">Share Now</button>
+                </div>
+            </div>
+
+            <div class="page" id="withdraw-page">
+                <div class="card">
+                    <h2>Withdraw Points</h2>
+                    <form id="withdraw-form">
+                        <div class="form-group">
+                            <label for="payment-method">Payment Method</label>
+                            <select id="payment-method" required>
+                                <option value="">Select a method</option>
+                                <option value="bkash">bKash</option>
+                                <option value="nagad">Nagad</option>
+                                <option value="grameenphone">Grameenphone Recharge</option>
+                                <option value="robi">Robi Recharge</option>
+                                <option value="jio">Jio Recharge</option>
+                                <option value="airtel">Airtel Recharge</option>
+                                <option value="banglalink">Banglalink Recharge</option>
+                                <option value="teletalk">Teletalk Recharge</option>
+                                <option value="binance">Binance</option>
+                                <option value="webmoney">WebMoney</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Points to Withdraw</label>
+                            <input type="number" id="amount" placeholder="Enter amount (points)" required>
+                            <span id="withdraw-message"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="account-id">Account ID / Phone Number</label>
+                            <input type="text" id="account-id" placeholder="Enter your Account ID or Phone Number" required>
+                        </div>
+                        <button type="submit" class="submit-btn">Submit Request</button>
+                    </form>
+                </div>
+                
+                <div class="history-section">
+                    <h2>Withdrawal History</h2>
+                    <div class="summary-box">
+                        <div class="summary-item">
+                            <span>Total Withdrawals</span>
+                            <span id="total-withdrawals-count" class="summary-value">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Total Points Withdrawn</span>
+                            <span id="total-points-withdrawn" class="summary-value">0</span>
+                        </div>
+                    </div>
+                    <ul id="withdrawal-history-list" class="withdrawal-list">
+                        <li class="loading-message">Loading history...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-footer">
+            <div class="nav-item active" data-page="home">
+                <i class="fas fa-home icon"></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-item" data-page="tasks">
+                <i class="fas fa-tasks icon"></i>
+                <span>Tasks</span>
+            </div>
+            <div class="nav-item" data-page="referral">
+                <i class="fas fa-user-plus icon"></i>
+                <span>Referral</span>
+            </div>
+            <div class="nav-item" data-page="withdraw">
+                <i class="fas fa-wallet icon"></i>
+                <span>Withdraw</span>
+            </div>
+        </div>
     </div>
-
-    <footer class="app-footer">
-        <a href="#" class="nav-item active" data-page="home">Home</a>
-        <a href="#" class="nav-item" data-page="withdraw">Withdraw</a>
-    </footer>
-</div>
-
-<script type="module" src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js"></script>
-<script type="module" src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js"></script>
-<script type="module" src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js"></script>
-<script type="module" src="script.js"></script>
 </body>
 </html>

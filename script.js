@@ -47,40 +47,47 @@ document.addEventListener("DOMContentLoaded", () => {
   const paymentMethodSelect = document.getElementById('payment-method');
   const amountInput = document.getElementById('amount');
   const withdrawMessageSpan = document.getElementById('withdraw-message');
-  const successfulCountSpan = document.getElementById('successful-count');
-  const pendingCountSpan = document.getElementById('pending-count');
+  
+  // New Withdrawal History UI elements
   const withdrawalHistoryList = document.getElementById('withdrawal-history-list');
-  const noHistoryMessage = document.getElementById('no-history-message');
+  const totalWithdrawalsCount = document.getElementById('total-withdrawals-count');
+  const totalPointsWithdrawn = document.getElementById('total-points-withdrawn');
 
-  // ======================= State & Settings =======================
+  // ---------- State ----------
   let adsWatched = 0;
+  const maxAdsPerCycle = 10;
+  const adResetTimeInMinutes = 15;
+  let adTimerInterval = null;
   let adCooldownEnds = null;
   let totalPoints = 0;
   let userName = 'User';
+  const pointsPerAd = 5;
+  const pointsPerTask = 10;
+  const referralPoints = 200;
+  const taskUrls = {
+    '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+  };
+  const taskCooldownInHours = 1;
+  let taskTimers = {};
   let telegramId = null;
   let telegramUser = null;
   let referrerCode = null;
 
-  let settings = {
-    ad_reset_minutes: 30,
-    ad_points: 5,
-    referral_points: 200,
-    min_withdraw_points_bkash: 10000,
-    min_withdraw_points_recharge: 2000,
-    is_maintenance_mode: false,
-    task_urls: {}
-  };
-
-  const taskCooldownInHours = 1;
-  let taskTimers = {};
-  
   // ======================= Telegram Init =======================
   try {
     if (window.Telegram?.WebApp?.initDataUnsafe) {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
       telegramId = String(telegramUser.id);
       referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
+      if (referrerCode) {
+        console.log("Referrer code found:", referrerCode);
+      }
     } else {
+      console.warn("Telegram user not found. Using fallback ID.");
       telegramId = 'fallback-test-user-id';
       telegramUser = {
         id: telegramId,
@@ -108,16 +115,17 @@ document.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     firebaseUID = user.uid;
-    await loadSettingsFromFirebase(); // Load settings first
     await loadUserDataFromFirebase();
-    await loadWithdrawalHistory(); // নতুন ফাংশন কল
     updateReferralLinkInput();
     setInterval(updateTaskButtons, 1000);
+    // New: Load and display withdrawal history after user data is loaded
+    loadWithdrawalHistory();
   });
 
   // ======================= Firestore Helpers =======================
   const usersDocRef = () => doc(db, "users", firebaseUID || "temp");
-  const settingsDocRef = doc(db, "settings", "app_config");
+  // New: Reference to the withdrawals collection
+  const withdrawalsCollectionRef = () => collection(db, "withdrawals");
   const serverNow = () => serverTimestamp();
   const toDate = (maybeTs) => {
     try {
@@ -133,18 +141,18 @@ document.addEventListener("DOMContentLoaded", () => {
     totalPointsDisplay.textContent = String(totalPoints);
   };
   const updateAdsCounter = () => {
-    const adsLeft = Math.max(0, 100 - adsWatched);
-    adWatchedCountSpan.textContent = `${adsWatched} watched`;
+    const adsLeft = Math.max(0, maxAdsPerCycle - adsWatched);
+    adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(adsWatched);
     
-    if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
+    if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
       watchAdBtn.textContent = 'Waiting for timer to finish';
     } else {
       watchAdBtn.disabled = false;
-      watchAdBtn.textContent = `Watch Ad & Earn ${settings.ad_points} Points`;
+      watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
     }
   };
   const switchPage = (pageId) => {
@@ -154,9 +162,6 @@ document.addEventListener("DOMContentLoaded", () => {
       item.classList.remove('active');
       if (item.dataset.page + '-page' === pageId) item.classList.add('active');
     });
-    if (pageId === 'withdraw-page') {
-      loadWithdrawalHistory(); // প্রতিবার উইথড্র পেজে এলে হিস্টোরি লোড হবে
-    }
   };
   const generateReferralCode = () => {
     const uniqueId = Math.floor(100000 + Math.random() * 900000);
@@ -171,13 +176,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const awardReferralPoints = async (referrerCode) => {
     if (!referrerCode) return;
     try {
-      const usersRef = db.collection("users");
-      const querySnapshot = await usersRef.where("referralCode", "==", referrerCode).limit(1).get();
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("referralCode", "==", referrerCode));
+      const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         const referrerDoc = querySnapshot.docs[0];
         const referrerDocRef = referrerDoc.ref;
         await updateDoc(referrerDocRef, {
-          points: increment(settings.referral_points)
+          points: increment(referralPoints)
         });
         console.log("Referral points awarded to:", referrerCode);
       } else {
@@ -213,18 +219,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error saving data:", error);
     }
   };
-  const loadSettingsFromFirebase = async () => {
-    try {
-      const docSnap = await getDoc(settingsDocRef);
-      if (docSnap.exists()) {
-        settings = docSnap.data();
-      } else {
-        console.warn("Settings document not found. Using default settings.");
-      }
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    }
-  };
   const loadUserDataFromFirebase = async () => {
     if (!firebaseUID) return;
     try {
@@ -246,6 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
           await awardReferralPoints(referrerCode);
           await saveUserDataToFirebase();
         }
+
       } else {
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
@@ -270,81 +265,16 @@ document.addEventListener("DOMContentLoaded", () => {
         saveUserDataToFirebase();
       }
 
-      if (settings.is_maintenance_mode) {
-          alert("The app is currently in maintenance mode. Please try again later.");
-          // Disable all buttons and features
-          document.body.style.pointerEvents = 'none';
-          document.body.style.opacity = '0.5';
-      }
-
     } catch (error) {
       console.error("Error loading data:", error);
     }
   };
 
-  // ======================= Withdrawal History =======================
-  const loadWithdrawalHistory = async () => {
-      if (!firebaseUID) return;
-
-      try {
-          const q = query(collection(db, "withdrawals"), 
-              where("userId", "==", firebaseUID),
-              orderBy("requestDate", "desc")
-          );
-          
-          const querySnapshot = await getDocs(q);
-          const history = [];
-          let pendingCount = 0;
-          let successfulCount = 0;
-          
-          querySnapshot.forEach((doc) => {
-              const data = doc.data();
-              if (data.status === 'pending') {
-                  pendingCount++;
-              } else if (data.status === 'completed') {
-                  successfulCount++;
-              }
-              history.push(data);
-          });
-          
-          successfulCountSpan.textContent = successfulCount;
-          pendingCountSpan.textContent = pendingCount;
-          
-          withdrawalHistoryList.innerHTML = '';
-          if (history.length > 0) {
-              noHistoryMessage.style.display = 'none';
-              history.forEach(item => {
-                  const itemDiv = document.createElement('div');
-                  itemDiv.className = 'history-item';
-                  itemDiv.innerHTML = `
-                      <div class="item-info">
-                          <p><strong>Method:</strong> ${item.paymentMethod}</p>
-                          <p><strong>Amount:</strong> ${item.amount} points</p>
-                          <p><strong>Status:</strong> <span class="status-${item.status}">${item.status}</span></p>
-                      </div>
-                  `;
-                  withdrawalHistoryList.appendChild(itemDiv);
-              });
-          } else {
-              noHistoryMessage.style.display = 'block';
-          }
-      } catch (error) {
-          console.error("Error loading withdrawal history:", error);
-      }
-  };
-
   // ======================= Tasks =======================
   const updateTaskButtons = () => {
-    const now = Date.at(Date.now());
+    const now = Date.now();
     taskButtons.forEach(button => {
       const taskId = button.dataset.taskId;
-      const taskUrl = settings.task_urls?.[taskId]; // Get URL from settings
-      if (!taskUrl) {
-        button.style.display = 'none'; // Hide if URL is not set in settings
-        return;
-      }
-      button.style.display = 'block';
-
       let cooldownEndTime = null;
       const saved = taskTimers[taskId];
       if (saved) {
@@ -359,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
         button.textContent = `Active in: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         button.disabled = true;
       } else {
-        button.textContent = `Task ${taskId}: +${settings.ad_points || 10} Points`; // Use ad_points for tasks as well
+        button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
         button.disabled = false;
       }
     });
@@ -367,16 +297,14 @@ document.addEventListener("DOMContentLoaded", () => {
   taskButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
-      const taskUrl = settings.task_urls?.[taskId];
-      if (!taskUrl) return;
-
+      const taskUrl = taskUrls[taskId];
       button.textContent = 'Please wait 10 seconds...';
       button.disabled = true;
       const newWindow = window.open(taskUrl, '_blank');
       setTimeout(async () => {
         try { if (newWindow) newWindow.close(); } catch {}
-        alert(`Task ${taskId} completed! You earned ${settings.ad_points} points.`);
-        totalPoints += settings.ad_points;
+        alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+        totalPoints += pointsPerTask;
         updatePointsDisplay();
         const cooldownEnds = new Date(Date.now() + taskCooldownInHours * 60 * 60 * 1000);
         taskTimers[taskId] = cooldownEnds;
@@ -391,6 +319,10 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener('click', () => {
       const pageId = item.dataset.page + '-page';
       switchPage(pageId);
+      // New: If the withdrawal page is selected, load the history
+      if (pageId === 'withdraw-page') {
+        loadWithdrawalHistory();
+      }
     });
   });
 
@@ -422,12 +354,16 @@ document.addEventListener("DOMContentLoaded", () => {
   paymentMethodSelect.addEventListener('change', () => {
     const method = paymentMethodSelect.value;
     if (method === 'bkash' || method === 'nagad') {
-      withdrawMessageSpan.textContent = `Minimum ${settings.min_withdraw_points_bkash} points are required for Mobile Banking withdrawal.`;
-      amountInput.placeholder = `Enter amount (min ${settings.min_withdraw_points_bkash})`;
+      withdrawMessageSpan.textContent = 'Minimum 10,000 points are required for Mobile Banking withdrawal.';
+      amountInput.placeholder = "Enter amount (min 10000)";
       amountInput.value = '';
     } else if (method === 'grameenphone' || method === 'robi' || method === 'jio' || method === 'airtel' || method === 'banglalink' || method === 'teletalk') {
-      withdrawMessageSpan.textContent = `Minimum ${settings.min_withdraw_points_recharge} points are required for Mobile Recharge.`;
-      amountInput.placeholder = `Enter amount (min ${settings.min_withdraw_points_recharge})`;
+      withdrawMessageSpan.textContent = 'Minimum 2,000 points are required for Mobile Recharge.';
+      amountInput.placeholder = "Enter amount (min 2000)";
+      amountInput.value = '';
+    } else if (method === 'binance' || method === 'webmoney') {
+      withdrawMessageSpan.textContent = 'Minimum 100,000 points are required for International Banking withdrawal.';
+      amountInput.placeholder = "Enter amount (min 100000)";
       amountInput.value = '';
     } else {
       withdrawMessageSpan.textContent = '';
@@ -444,9 +380,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // মিনিমাম পয়েন্ট চেক করা হচ্ছে
     if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
-      minimumPoints = settings.min_withdraw_points_bkash;
+      minimumPoints = 10000;
     } else if (paymentMethod === 'grameenphone' || paymentMethod === 'robi' || paymentMethod === 'jio' || paymentMethod === 'airtel' || paymentMethod === 'banglalink' || paymentMethod === 'teletalk') {
-      minimumPoints = settings.min_withdraw_points_recharge;
+      minimumPoints = 2000;
+    } else if (paymentMethod === 'binance' || paymentMethod === 'webmoney') {
+      minimumPoints = 100000;
     } else {
       alert('Please select a valid payment method.');
       return;
@@ -468,47 +406,123 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const payload = {
-      userName,
-      telegramId,
-      firebaseUID,
-      amount: minimumPoints, // শুধুমাত্র মিনিমাম পয়েন্ট কাটা হবে
-      paymentMethod,
-      accountId
+    // New: Save withdrawal request to Firebase
+    const withdrawalDoc = doc(withdrawalsCollectionRef());
+    const withdrawalData = {
+      firebaseUID: firebaseUID,
+      telegramId: telegramId,
+      userName: userName,
+      amount: minimumPoints,
+      paymentMethod: paymentMethod,
+      accountId: accountId,
+      timestamp: serverNow(),
+      status: 'pending' // Initial status is pending
     };
+    await setDoc(withdrawalDoc, withdrawalData);
 
+    // New: Update user's points and total withdrawal stats
     try {
-      // Firebase থেকে পয়েন্ট মাইনাস করা হচ্ছে
       await updateDoc(usersDocRef(), {
         points: FieldValue.increment(-minimumPoints),
-        lastWithdrawal: serverNow(),
+        totalWithdrawalsCount: FieldValue.increment(1),
+        totalPointsWithdrawn: FieldValue.increment(minimumPoints)
       });
       totalPoints -= minimumPoints;
       updatePointsDisplay();
+    } catch (error) {
+      console.error("Error updating user stats:", error);
+      alert("An error occurred while updating your points. Please contact support.");
+      return;
+    }
 
-      // Vercel API Function-এ মেসেজ পাঠানোর জন্য রিকোয়েস্ট পাঠানো হচ্ছে
-      const res = await fetch('https://telegram-mini-app-admin-panel.vercel.app/api/withdraw', {
+    // Telegram-এ মেসেজ পাঠানো হচ্ছে
+    const telegramPayload = {
+      chat_id: '5932597801', // টার্গেট ইউজার ID
+      text: `💰 **New Withdraw Request** 💰\n\n` +
+            `👤 **User:** ${userName} (@${telegramUser.username})\n` +
+            `🆔 **Telegram ID:** ${telegramId}\n` +
+            `💳 **Payment Method:** ${paymentMethod}\n` +
+            `💵 **Amount:** ${minimumPoints} Points\n` +
+            `🔢 **Account ID:** ${accountId}\n\n` +
+            `_This request was automatically sent from the Coin Bazar Mini App._`,
+      parse_mode: 'Markdown'
+    };
+
+    try {
+      await fetch(`https://api.telegram.org/bot7253504381:AAH8u8i4oQn2Q1KxH8T7j7pWfH7g4F8S8S8/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(telegramPayload)
       });
-      
-      const result = await res.json();
-      if (res.ok) {
-        alert('Withdrawal request submitted successfully!');
-        e.target.reset();
-        loadWithdrawalHistory(); // নতুন রিকোয়েস্ট পাঠানোর পর হিস্টোরি রিফ্রেশ হবে
-      } else {
-        console.error('API Error:', result.error);
-        alert('Failed to submit withdrawal request. Please try again.');
-      }
-
+      alert('Withdrawal request submitted successfully!');
+      e.target.reset();
+      // New: Reload history after successful withdrawal
+      loadWithdrawalHistory();
     } catch (error) {
       console.error('Error submitting withdrawal request:', error);
       alert('An error occurred. Please check your connection and try again.');
     }
   });
+  
+  // ======================= New: Withdrawal History Display =======================
+  const loadWithdrawalHistory = async () => {
+    if (!firebaseUID) return;
 
+    // Clear previous history
+    withdrawalHistoryList.innerHTML = '<li class="loading-message">Loading history...</li>';
+    totalWithdrawalsCount.textContent = '0';
+    totalPointsWithdrawn.textContent = '0';
+
+    try {
+      // Fetch user's stats for total counts
+      const userDoc = await getDoc(usersDocRef());
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        totalWithdrawalsCount.textContent = userData.totalWithdrawalsCount || 0;
+        totalPointsWithdrawn.textContent = userData.totalPointsWithdrawn || 0;
+      }
+      
+      // Fetch user's withdrawal requests
+      const q = query(
+        withdrawalsCollectionRef(),
+        where("firebaseUID", "==", firebaseUID),
+        orderBy("timestamp", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+
+      withdrawalHistoryList.innerHTML = ''; // Clear loading message
+
+      if (querySnapshot.empty) {
+        withdrawalHistoryList.innerHTML = '<li class="no-history-message">No withdrawal history found.</li>';
+      } else {
+        querySnapshot.forEach(doc => {
+          const withdrawal = doc.data();
+          const date = withdrawal.timestamp ? toDate(withdrawal.timestamp).toLocaleDateString() : 'N/A';
+          const time = withdrawal.timestamp ? toDate(withdrawal.timestamp).toLocaleTimeString() : 'N/A';
+
+          const listItem = document.createElement('li');
+          listItem.className = `withdrawal-item ${withdrawal.status}`;
+          
+          const statusText = withdrawal.status.charAt(0).toUpperCase() + withdrawal.status.slice(1);
+          
+          listItem.innerHTML = `
+            <div class="withdrawal-info">
+              <span>Method: ${withdrawal.paymentMethod}</span>
+              <span class="withdrawal-amount">Amount: ${withdrawal.amount} Points</span>
+            </div>
+            <div class="withdrawal-details">
+              <span>Date: ${date} ${time}</span>
+              <span class="status ${withdrawal.status}">${statusText}</span>
+            </div>
+          `;
+          withdrawalHistoryList.appendChild(listItem);
+        });
+      }
+    } catch (error) {
+      console.error("Error loading withdrawal history:", error);
+      withdrawalHistoryList.innerHTML = '<li class="error-message">Error loading history. Please try again.</li>';
+    }
+  };
 
   // ======================= Name Edit =======================
   editNameBtn.addEventListener('click', () => {
@@ -535,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Ad Timer =======================
-  const startAdTimer = (initialSeconds = settings.ad_reset_minutes * 60) => {
+  const startAdTimer = (initialSeconds = adResetTimeInMinutes * 60) => {
     let timeLeft = Math.ceil(initialSeconds);
     adTimerSpan.textContent = formatTime(timeLeft);
     watchAdBtn.disabled = true;
@@ -562,20 +576,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Watch Ad =======================
   watchAdBtn.addEventListener('click', async () => {
-    if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
-      alert(`Please wait for the timer to finish.`);
+    if (adsWatched >= maxAdsPerCycle) {
+      alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
     if (typeof window.show_9673543 === 'function') {
       try {
         await window.show_9673543();
         adsWatched++;
-        totalPoints += settings.ad_points;
+        totalPoints += pointsPerAd;
         updateAdsCounter();
         updatePointsDisplay();
-        adCooldownEnds = new Date(Date.now() + settings.ad_reset_minutes * 60 * 1000);
-        startAdTimer();
-        alert(`You earned ${settings.ad_points} points! The timer has started.`);
+        if (adsWatched >= maxAdsPerCycle) {
+          adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+          startAdTimer();
+          alert('You have watched all ads for this cycle. The timer has started!');
+        } else {
+          alert(`You earned ${pointsPerAd} points!`);
+        }
         await saveUserDataToFirebase();
       } catch (e) {
         console.error('Ad error:', e);
