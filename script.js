@@ -2,7 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
-  serverTimestamp, Timestamp, increment, FieldValue
+  serverTimestamp, Timestamp, increment, FieldValue,
+  collection, query, where, getDocs, orderBy
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, onAuthStateChanged
@@ -46,7 +47,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const paymentMethodSelect = document.getElementById('payment-method');
   const amountInput = document.getElementById('amount');
   const withdrawMessageSpan = document.getElementById('withdraw-message');
-  
+  const successfulCountSpan = document.getElementById('successful-count');
+  const pendingCountSpan = document.getElementById('pending-count');
+  const withdrawalHistoryList = document.getElementById('withdrawal-history-list');
+  const noHistoryMessage = document.getElementById('no-history-message');
+
   // ======================= State & Settings =======================
   let adsWatched = 0;
   let adCooldownEnds = null;
@@ -105,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     firebaseUID = user.uid;
     await loadSettingsFromFirebase(); // Load settings first
     await loadUserDataFromFirebase();
+    await loadWithdrawalHistory(); // নতুন ফাংশন কল
     updateReferralLinkInput();
     setInterval(updateTaskButtons, 1000);
   });
@@ -127,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
     totalPointsDisplay.textContent = String(totalPoints);
   };
   const updateAdsCounter = () => {
-    const adsLeft = Math.max(0, 100 - adsWatched); // This limit is now based on reset time
+    const adsLeft = Math.max(0, 100 - adsWatched);
     adWatchedCountSpan.textContent = `${adsWatched} watched`;
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
@@ -148,6 +154,9 @@ document.addEventListener("DOMContentLoaded", () => {
       item.classList.remove('active');
       if (item.dataset.page + '-page' === pageId) item.classList.add('active');
     });
+    if (pageId === 'withdraw-page') {
+      loadWithdrawalHistory(); // প্রতিবার উইথড্র পেজে এলে হিস্টোরি লোড হবে
+    }
   };
   const generateReferralCode = () => {
     const uniqueId = Math.floor(100000 + Math.random() * 900000);
@@ -273,9 +282,60 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // ======================= Withdrawal History =======================
+  const loadWithdrawalHistory = async () => {
+      if (!firebaseUID) return;
+
+      try {
+          const q = query(collection(db, "withdrawals"), 
+              where("userId", "==", firebaseUID),
+              orderBy("requestDate", "desc")
+          );
+          
+          const querySnapshot = await getDocs(q);
+          const history = [];
+          let pendingCount = 0;
+          let successfulCount = 0;
+          
+          querySnapshot.forEach((doc) => {
+              const data = doc.data();
+              if (data.status === 'pending') {
+                  pendingCount++;
+              } else if (data.status === 'completed') {
+                  successfulCount++;
+              }
+              history.push(data);
+          });
+          
+          successfulCountSpan.textContent = successfulCount;
+          pendingCountSpan.textContent = pendingCount;
+          
+          withdrawalHistoryList.innerHTML = '';
+          if (history.length > 0) {
+              noHistoryMessage.style.display = 'none';
+              history.forEach(item => {
+                  const itemDiv = document.createElement('div');
+                  itemDiv.className = 'history-item';
+                  itemDiv.innerHTML = `
+                      <div class="item-info">
+                          <p><strong>Method:</strong> ${item.paymentMethod}</p>
+                          <p><strong>Amount:</strong> ${item.amount} points</p>
+                          <p><strong>Status:</strong> <span class="status-${item.status}">${item.status}</span></p>
+                      </div>
+                  `;
+                  withdrawalHistoryList.appendChild(itemDiv);
+              });
+          } else {
+              noHistoryMessage.style.display = 'block';
+          }
+      } catch (error) {
+          console.error("Error loading withdrawal history:", error);
+      }
+  };
+
   // ======================= Tasks =======================
   const updateTaskButtons = () => {
-    const now = Date.now();
+    const now = Date.at(Date.now());
     taskButtons.forEach(button => {
       const taskId = button.dataset.taskId;
       const taskUrl = settings.task_urls?.[taskId]; // Get URL from settings
@@ -437,6 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (res.ok) {
         alert('Withdrawal request submitted successfully!');
         e.target.reset();
+        loadWithdrawalHistory(); // নতুন রিকোয়েস্ট পাঠানোর পর হিস্টোরি রিফ্রেশ হবে
       } else {
         console.error('API Error:', result.error);
         alert('Failed to submit withdrawal request. Please try again.');
