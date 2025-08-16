@@ -9,16 +9,18 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-// ==== Firebase কনফিগ Vercel থেকে লোড করা হচ্ছে ====
+// ==== আপনার আসল Firebase কনফিগ এখানে বসান ====
+// Firebase console > Project settings > Your apps থেকে এই তথ্যগুলো পাবেন
 const firebaseConfig = {
-  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq-GSz8aiIPoSohc",
+  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc", // <-- আপনার আসল কী বসান
   authDomain: "coin-bazar-f3093.firebaseapp.com",
   projectId: "coin-bazar-f3093",
-  storageBucket: "coin-bazar-f3093.appspot.com",
+  storageBucket: "coin-bazar-f3093.firebasestorage.app", // <-- সঠিক Storage Bucket
   messagingSenderId: "551875632672",
   appId: "1:551875632672:web:55bdd11d4654bc4984a645",
   measurementId: "G-776LFTSXTP"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -365,7 +367,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (method === 'binance' || method === 'webmoney') {
       withdrawMessageSpan.textContent = 'Minimum 100,000 points are required for International Banking withdrawal.';
       amountInput.placeholder = "Enter amount (min 100000)";
-      amountInput.value = '';
     } else {
       withdrawMessageSpan.textContent = '';
       amountInput.placeholder = "Enter amount (points)";
@@ -573,10 +574,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    // Check if Monetag script is loaded and `show_9673543` function exists
     if (typeof window.show_9673543 === 'function') {
-        try {
-            await window.show_9673543();
+      try {
+        await window.show_9673543().then(() => {
+            // Reward user for watching rewarded interstitial ad
             adsWatched++;
             totalPoints += pointsPerAd;
             updateAdsCounter();
@@ -588,15 +589,35 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 alert(`You earned ${pointsPerAd} points!`);
             }
-            await saveUserDataToFirebase();
-        } catch (e) {
-            console.error('Ad error:', e);
-            alert('There was an error loading the ad. Please try again.');
-        }
-    } else {
+            saveUserDataToFirebase();
+        }).catch(async (e) => {
+            console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
+            // Fallback to Rewarded Popup if Interstitial fails
+            await window.show_9673543('pop').then(() => {
+                // Reward user for watching rewarded popup ad
+                adsWatched++;
+                totalPoints += pointsPerAd;
+                updateAdsCounter();
+                updatePointsDisplay();
+                if (adsWatched >= maxAdsPerCycle) {
+                    adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                    startAdTimer();
+                    alert('You have watched all ads for this cycle. The timer has started!');
+                } else {
+                    alert(`You earned ${pointsPerAd} points!`);
+                }
+                saveUserDataToFirebase();
+            }).catch(e => {
+                console.error('Rewarded Popup also failed:', e);
+                alert('There was an error loading the ad. Please try again.');
+            });
+        });
+      } catch (e) {
+        console.error('Ad function call failed:', e);
         alert('Ad script not loaded. Please try again.');
-        // Optionally, you can reload the page to force the ad script to load
-        // window.location.reload();
+      }
+    } else {
+      alert('Ad script not loaded. Please try again.');
     }
   });
 

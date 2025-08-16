@@ -1,186 +1,237 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coin Bazar</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="script.js" type="module"></script>
-    <script async="async" data-cfasync="false" src="//pl23423403.highcpmgate.com/83/87/40/83874057e0f27914e9f54668df21b6d0.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coin Bazar</title>
+  <link rel="stylesheet" href="style.css"/>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <script src="//libtl.com/sdk.js" data-zone="9673543" data-sdk="show_9673543"></script>
 </head>
 <body>
-    <div class="app-container">
-        <div class="app-header">
-            <div class="header-top">
-                <h1 class="app-name">Coin Bazar</h1>
-                <i class="fas fa-bell icon"></i>
-            </div>
-            <div class="profile-card">
-                <div class="profile-info">
-                    <img id="profile-pic" src="https://i.ibb.co/C0b87sX/icon.png" alt="Profile Picture" class="profile-pic">
-                    <div class="user-details">
-                        <span id="user-name-display" class="user-name">User</span>
-                        <i id="edit-name-btn" class="fas fa-edit edit-icon"></i>
-                        <span class="verify-badge">Verified</span>
-                    </div>
-                </div>
-                <div class="user-stats">
-                    <div class="stat-item">
-                        <span id="total-points" class="stat-value">0</span>
-                        <span class="stat-label">Total Points</span>
-                    </div>
-                    <div class="stat-item">
-                        <span id="ads-left-value" class="stat-value">0</span>
-                        <span class="stat-label">Ads Left</span>
-                    </div>
-                </div>
-            </div>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-top">
+        <i class="icon back-icon"></i>
+        <h1 class="app-name">Coin Bazar</h1>
+        <i class="icon settings-icon">⚙️</i>
+      </div>
+      <div class="profile-card">
+        <div class="profile-info">
+          <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiLqGbEPB7_YxQqC_SRJmtpap6Y10JyFPK92LOvD7BknNHvuQNK90Lous-9h6zuYULOjK-s6BcVeAT3qDVpa4Al1m9OVk5DTUf-JkKTOiEo3yz2yre8Lkh1gBHP780lphfbqPe_kSZ9UIWZ8jmKG9gE5X5L4LMRSgdDKU8XJF7lbV5BwSmR6O9sXe6VYGI/s1233/1000034050.png" alt="Profile Picture" class="profile-pic" id="profile-pic">
+          <div class="user-details">
+            <span class="user-name" id="user-name-display">User</span>
+            <span class="verify-badge">✅</span>
+            <i class="icon edit-icon" id="edit-name-btn">✏️</i>
+          </div>
         </div>
-
-        <div class="main-content">
-            <div class="page active" id="home-page">
-                <div class="card">
-                    <h2>Welcome to Coin Bazar!</h2>
-                    <p>Hello, <span id="welcome-user-name">User</span>. Start earning points by watching ads and completing simple tasks.</p>
-                    <div class="welcome-stats">
-                        <div class="stat-item">
-                            <span id="total-ads-watched" class="stat-value">0</span>
-                            <span class="stat-label">Total Ads Watched</span>
-                        </div>
-                        <div class="stat-item">
-                            <span id="welcome-ads-left" class="stat-value">0</span>
-                            <span class="stat-label">Ads Left</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card ad-section">
-                    <h2>Watch Ads</h2>
-                    <p class="ad-progress">
-                        <span id="ad-watched-count">0/10 watched</span>
-                        <span id="ad-timer">Ready!</span>
-                    </p>
-                    <button class="watch-ad-btn">Watch Ad & Earn 5 Points</button>
-                    <p class="points-rule">You can watch 10 ads every 15 minutes.</p>
-                </div>
-            </div>
-
-            <div class="page" id="tasks-page">
-                <div class="card">
-                    <h2>Daily Tasks</h2>
-                    <p class="task-rules">Earn points by completing these quick tasks. Each task can be done once every hour.</p>
-                    <div class="task-buttons">
-                        <button class="task-btn" data-task-id="1">Task 1: +10 Points</button>
-                        <button class="task-btn" data-task-id="2">Task 2: +10 Points</button>
-                        <button class="task-btn" data-task-id="3">Task 3: +10 Points</button>
-                        <button class="task-btn" data-task-id="4">Task 4: +10 Points</button>
-                        <button class="task-btn" data-task-id="5">Task 5: +10 Points</button>
-                    </div>
-                </div>
-                <div class="card">
-                    <h2>Bonus Task</h2>
-                    <div class="bonus-item">
-                        <span>Join Telegram Channel</span>
-                        <a href="https://t.me/coinbazar_bot" target="_blank">
-                            <button class="join-btn">Join</button>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="page" id="referral-page">
-                <div class="card">
-                    <h2>Refer & Earn</h2>
-                    <p>Share your referral link with friends and earn 200 points for each new user who signs up using your link.</p>
-                    <div class="form-group">
-                        <label for="referral-code">Your Referral Code</label>
-                        <div class="input-with-btn">
-                            <input type="text" id="referral-code" value="CB123456" readonly>
-                            <button class="copy-btn">Copy</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="referral-link">Your Referral Link</label>
-                        <div class="input-with-btn">
-                            <input type="text" id="referral-link" value="https://t.me/CoinBazar_bot?start=CB123456" readonly>
-                            <button class="copy-btn">Copy</button>
-                        </div>
-                    </div>
-                    <button class="share-btn">Share Now</button>
-                </div>
-            </div>
-
-            <div class="page" id="withdraw-page">
-                <div class="card">
-                    <h2>Withdraw Points</h2>
-                    <form id="withdraw-form">
-                        <div class="form-group">
-                            <label for="payment-method">Payment Method</label>
-                            <select id="payment-method" required>
-                                <option value="">Select a method</option>
-                                <option value="bkash">bKash</option>
-                                <option value="nagad">Nagad</option>
-                                <option value="grameenphone">Grameenphone Recharge</option>
-                                <option value="robi">Robi Recharge</option>
-                                <option value="jio">Jio Recharge</option>
-                                <option value="airtel">Airtel Recharge</option>
-                                <option value="banglalink">Banglalink Recharge</option>
-                                <option value="teletalk">Teletalk Recharge</option>
-                                <option value="binance">Binance</option>
-                                <option value="webmoney">WebMoney</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="amount">Points to Withdraw</label>
-                            <input type="number" id="amount" placeholder="Enter amount (points)" required>
-                            <span id="withdraw-message"></span>
-                        </div>
-                        <div class="form-group">
-                            <label for="account-id">Account ID / Phone Number</label>
-                            <input type="text" id="account-id" placeholder="Enter your Account ID or Phone Number" required>
-                        </div>
-                        <button type="submit" class="submit-btn">Submit Request</button>
-                    </form>
-                </div>
-                
-                <div class="history-section">
-                    <h2>Withdrawal History</h2>
-                    <div class="summary-box">
-                        <div class="summary-item">
-                            <span>Total Withdrawals</span>
-                            <span id="total-withdrawals-count" class="summary-value">0</span>
-                        </div>
-                        <div class="summary-item">
-                            <span>Total Points Withdrawn</span>
-                            <span id="total-points-withdrawn" class="summary-value">0</span>
-                        </div>
-                    </div>
-                    <ul id="withdrawal-history-list" class="withdrawal-list">
-                        <li class="loading-message">Loading history...</li>
-                    </ul>
-                </div>
-            </div>
+        <div class="user-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="total-points">0</span>
+            <span class="stat-label">Points</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="ads-left-value">10</span>
+            <span class="stat-label">Ads Left</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="total-ads-watched">0</span>
+            <span class="stat-label">Total Watched</span>
+          </div>
         </div>
+      </div>
+    </header>
 
-        <div class="app-footer">
-            <div class="nav-item active" data-page="home">
-                <i class="fas fa-home icon"></i>
-                <span>Home</span>
+    <main class="main-content">
+      <section id="home-page" class="page active">
+        <div class="welcome-card card">
+          <h2 class="welcome-text">Welcome, <span id="welcome-user-name">User</span>!</h2>
+          <p>Start earning points by completing tasks, watching ads, and inviting friends.</p>
+          <div class="welcome-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="welcome-ads-left">10</span>
+              <span class="stat-label">Ads Left</span>
             </div>
-            <div class="nav-item" data-page="tasks">
-                <i class="fas fa-tasks icon"></i>
-                <span>Tasks</span>
+            <div class="stat-item">
+              <span class="stat-value" id="total-points">0</span>
+              <span class="stat-label">Points</span>
             </div>
-            <div class="nav-item" data-page="referral">
-                <i class="fas fa-user-plus icon"></i>
-                <span>Referral</span>
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">Referrals</span>
             </div>
-            <div class="nav-item" data-page="withdraw">
-                <i class="fas fa-wallet icon"></i>
-                <span>Withdraw</span>
-            </div>
+          </div>
+          <p class="developed-by">Developed by: Coin Bazar</p>
         </div>
-    </div>
+        <div class="watch-ads-card card">
+          <h2>Watch Ads</h2>
+          <p>Watch short video ads to earn points. You can watch up to 10 ads every 15 minutes.</p>
+          <p class="points-rule">Each ad rewards you with 5 points.</p>
+          <div class="ad-progress">
+            <span id="ad-watched-count">0/10 watched</span>
+            <span id="ad-timer">00:00 remaining</span>
+          </div>
+          <button class="watch-ad-btn">Watch Ad & Earn 5 Points</button>
+        </div>
+      </section>
+
+      <section id="tasks-page" class="page">
+        <div class="tasks-card card">
+          <h2>Daily Tasks</h2>
+          <p class="task-rules">
+            Complete a task to earn 10 points. To successfully complete a task, you must:
+            <br>- Stay on the website for at least 10 seconds.
+            <br>- If prompted, sign up for the website.
+            <br>Each task can be completed once per hour.
+          </p>
+          <div class="task-buttons">
+            <button class="task-btn" data-task-id="1">Task 1: +10 Points</button>
+            <button class="task-btn" data-task-id="2">Task 2: +10 Points</button>
+            <button class="task-btn" data-task-id="3">Task 3: +10 Points</button>
+            <button class="task-btn" data-task-id="4">Task 4: +10 Points</button>
+            <button class="task-btn" data-task-id="5">Task 5: +10 Points</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="bonus-page" class="page">
+        <div class="bonus-card card">
+          <h2>Bonus Rewards</h2>
+          <p>Join our community channels to earn bonus points. Visit the channel and return to claim your reward.</p>
+          <div class="bonus-item">
+            <span>Official Channel</span>
+            <button class="join-btn">+50 Points</button>
+          </div>
+          <div class="bonus-item">
+            <span>Support Group</span>
+            <button class="join-btn">+50 Points</button>
+          </div>
+          <div class="bonus-item">
+            <span>Telegram Community</span>
+            <button class="join-btn">+50 Points</button>
+          </div>
+          <div class="bonus-item">
+            <span>WhatsApp Community</span>
+            <button class="join-btn">+50 Points</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="withdraw-page" class="page">
+        <div class="withdraw-card card">
+          <h2>Withdraw</h2>
+          <div class="user-withdraw-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="total-withdrawals-count">0</span>
+              <span class="stat-label">Total Withdrawals</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="total-points-withdrawn">0</span>
+              <span class="stat-label">Points Withdrawn</span>
+            </div>
+          </div>
+          <p id="withdraw-message">Minimum 10,000 points are required for Mobile Banking withdrawal.</p>
+          <form id="withdraw-form">
+            <div class="form-group">
+              <label for="payment-method">Payment Method</label>
+              <select id="payment-method" required>
+                <option value="" disabled selected>Select method</option>
+                <optgroup label="Direct Payments">
+                  <option value="bkash">Bkash</option>
+                  <option value="nagad">Nagad</option>
+                </optgroup>
+                <optgroup label="International">
+                  <option value="binance">Binance</option>
+                  <option value="webmoney">WebMoney</option>
+                </optgroup>
+                <optgroup label="Mobile Recharge">
+                  <option value="grameenphone">Grameenphone</option>
+                  <option value="robi">Robi</option>
+                  <option value="jio">Jio</option>
+                  <option value="airtel">Airtel</option>
+                  <option value="banglalink">Banglalink</option>
+                  <option value="teletalk">Teletalk</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="amount">Amount (Points)</label>
+              <input type="number" id="amount" placeholder="Enter amount (min 10000)" required>
+            </div>
+            <div class="form-group">
+              <label for="account-id">Account Number/ID</label>
+              <input type="text" id="account-id" placeholder="Enter your account details" required>
+            </div>
+            <button type="submit" class="submit-btn">Submit Request</button>
+          </form>
+        </div>
+        
+        <div class="withdrawal-history-card card">
+          <h2>Withdrawal History</h2>
+          <ul id="withdrawal-history-list">
+            </ul>
+        </div>
+      </section>
+
+      <section id="referral-page" class="page">
+        <div class="referral-card card">
+          <h2>Refer & Earn</h2>
+          <p>Invite friends and earn 200 points per successful referral!</p>
+          <div class="referral-item">
+            <label for="referral-code">Your Referral Code</label>
+            <div class="input-with-btn">
+              <input type="text" id="referral-code" value="CB123456" readonly>
+              <button class="copy-btn">Copy</button>
+            </div>
+          </div>
+          <div class="referral-item">
+            <label for="referral-link">Your Referral Link</label>
+            <div class="input-with-btn">
+              <input type="text" id="referral-link" value="https://t.me/CoinBazar_bot" readonly>
+              <button class="copy-btn">Copy</button>
+            </div>
+          </div>
+          <button class="share-btn">Share Link</button>
+          <div class="referral-stats">
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">Referrals</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">Points Earned</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <div class="nav-item active" data-page="home">
+        <i class="icon">🏠</i>
+        <span>Home</span>
+      </div>
+      <div class="nav-item" data-page="tasks">
+        <i class="icon">📋</i>
+        <span>Tasks</span>
+      </div>
+      <div class="nav-item" data-page="referral">
+        <i class="icon">👥</i>
+        <span>Refer</span>
+      </div>
+      <div class="nav-item" data-page="withdraw">
+        <i class="icon">💸</i>
+        <span>Withdraw</span>
+      </div>
+      <div class="nav-item" data-page="bonus">
+        <i class="icon">🎁</i>
+        <span>Bonus</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
