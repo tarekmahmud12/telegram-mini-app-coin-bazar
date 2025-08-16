@@ -46,42 +46,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const paymentMethodSelect = document.getElementById('payment-method');
   const amountInput = document.getElementById('amount');
   const withdrawMessageSpan = document.getElementById('withdraw-message');
-
-  // ---------- State ----------
+  
+  // ======================= State & Settings =======================
   let adsWatched = 0;
-  const maxAdsPerCycle = 10;
-  const adResetTimeInMinutes = 15;
-  let adTimerInterval = null;
   let adCooldownEnds = null;
   let totalPoints = 0;
   let userName = 'User';
-  const pointsPerAd = 5;
-  const pointsPerTask = 10;
-  const referralPoints = 200;
-  const taskUrls = {
-    '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-  };
-  const taskCooldownInHours = 1;
-  let taskTimers = {};
   let telegramId = null;
   let telegramUser = null;
   let referrerCode = null;
 
+  let settings = {
+    ad_reset_minutes: 30,
+    ad_points: 5,
+    referral_points: 200,
+    min_withdraw_points_bkash: 10000,
+    min_withdraw_points_recharge: 2000,
+    is_maintenance_mode: false,
+    task_urls: {}
+  };
+
+  const taskCooldownInHours = 1;
+  let taskTimers = {};
+  
   // ======================= Telegram Init =======================
   try {
     if (window.Telegram?.WebApp?.initDataUnsafe) {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
       telegramId = String(telegramUser.id);
       referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
-      if (referrerCode) {
-        console.log("Referrer code found:", referrerCode);
-      }
     } else {
-      console.warn("Telegram user not found. Using fallback ID.");
       telegramId = 'fallback-test-user-id';
       telegramUser = {
         id: telegramId,
@@ -109,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     firebaseUID = user.uid;
+    await loadSettingsFromFirebase(); // Load settings first
     await loadUserDataFromFirebase();
     updateReferralLinkInput();
     setInterval(updateTaskButtons, 1000);
@@ -116,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Firestore Helpers =======================
   const usersDocRef = () => doc(db, "users", firebaseUID || "temp");
+  const settingsDocRef = doc(db, "settings", "app_config");
   const serverNow = () => serverTimestamp();
   const toDate = (maybeTs) => {
     try {
@@ -131,18 +127,18 @@ document.addEventListener("DOMContentLoaded", () => {
     totalPointsDisplay.textContent = String(totalPoints);
   };
   const updateAdsCounter = () => {
-    const adsLeft = Math.max(0, maxAdsPerCycle - adsWatched);
-    adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
+    const adsLeft = Math.max(0, 100 - adsWatched); // This limit is now based on reset time
+    adWatchedCountSpan.textContent = `${adsWatched} watched`;
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(adsWatched);
     
-    if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
+    if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
       watchAdBtn.textContent = 'Waiting for timer to finish';
     } else {
       watchAdBtn.disabled = false;
-      watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+      watchAdBtn.textContent = `Watch Ad & Earn ${settings.ad_points} Points`;
     }
   };
   const switchPage = (pageId) => {
@@ -172,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const referrerDoc = querySnapshot.docs[0];
         const referrerDocRef = referrerDoc.ref;
         await updateDoc(referrerDocRef, {
-          points: increment(referralPoints)
+          points: increment(settings.referral_points)
         });
         console.log("Referral points awarded to:", referrerCode);
       } else {
@@ -208,6 +204,18 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error saving data:", error);
     }
   };
+  const loadSettingsFromFirebase = async () => {
+    try {
+      const docSnap = await getDoc(settingsDocRef);
+      if (docSnap.exists()) {
+        settings = docSnap.data();
+      } else {
+        console.warn("Settings document not found. Using default settings.");
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  };
   const loadUserDataFromFirebase = async () => {
     if (!firebaseUID) return;
     try {
@@ -229,7 +237,6 @@ document.addEventListener("DOMContentLoaded", () => {
           await awardReferralPoints(referrerCode);
           await saveUserDataToFirebase();
         }
-
       } else {
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
@@ -254,6 +261,13 @@ document.addEventListener("DOMContentLoaded", () => {
         saveUserDataToFirebase();
       }
 
+      if (settings.is_maintenance_mode) {
+          alert("The app is currently in maintenance mode. Please try again later.");
+          // Disable all buttons and features
+          document.body.style.pointerEvents = 'none';
+          document.body.style.opacity = '0.5';
+      }
+
     } catch (error) {
       console.error("Error loading data:", error);
     }
@@ -264,6 +278,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const now = Date.now();
     taskButtons.forEach(button => {
       const taskId = button.dataset.taskId;
+      const taskUrl = settings.task_urls?.[taskId]; // Get URL from settings
+      if (!taskUrl) {
+        button.style.display = 'none'; // Hide if URL is not set in settings
+        return;
+      }
+      button.style.display = 'block';
+
       let cooldownEndTime = null;
       const saved = taskTimers[taskId];
       if (saved) {
@@ -278,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
         button.textContent = `Active in: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         button.disabled = true;
       } else {
-        button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+        button.textContent = `Task ${taskId}: +${settings.ad_points || 10} Points`; // Use ad_points for tasks as well
         button.disabled = false;
       }
     });
@@ -286,14 +307,16 @@ document.addEventListener("DOMContentLoaded", () => {
   taskButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
-      const taskUrl = taskUrls[taskId];
+      const taskUrl = settings.task_urls?.[taskId];
+      if (!taskUrl) return;
+
       button.textContent = 'Please wait 10 seconds...';
       button.disabled = true;
       const newWindow = window.open(taskUrl, '_blank');
       setTimeout(async () => {
         try { if (newWindow) newWindow.close(); } catch {}
-        alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
-        totalPoints += pointsPerTask;
+        alert(`Task ${taskId} completed! You earned ${settings.ad_points} points.`);
+        totalPoints += settings.ad_points;
         updatePointsDisplay();
         const cooldownEnds = new Date(Date.now() + taskCooldownInHours * 60 * 60 * 1000);
         taskTimers[taskId] = cooldownEnds;
@@ -339,16 +362,12 @@ document.addEventListener("DOMContentLoaded", () => {
   paymentMethodSelect.addEventListener('change', () => {
     const method = paymentMethodSelect.value;
     if (method === 'bkash' || method === 'nagad') {
-      withdrawMessageSpan.textContent = 'Minimum 10,000 points are required for Mobile Banking withdrawal.';
-      amountInput.placeholder = "Enter amount (min 10000)";
+      withdrawMessageSpan.textContent = `Minimum ${settings.min_withdraw_points_bkash} points are required for Mobile Banking withdrawal.`;
+      amountInput.placeholder = `Enter amount (min ${settings.min_withdraw_points_bkash})`;
       amountInput.value = '';
     } else if (method === 'grameenphone' || method === 'robi' || method === 'jio' || method === 'airtel' || method === 'banglalink' || method === 'teletalk') {
-      withdrawMessageSpan.textContent = 'Minimum 2,000 points are required for Mobile Recharge.';
-      amountInput.placeholder = "Enter amount (min 2000)";
-      amountInput.value = '';
-    } else if (method === 'binance' || method === 'webmoney') {
-      withdrawMessageSpan.textContent = 'Minimum 100,000 points are required for International Banking withdrawal.';
-      amountInput.placeholder = "Enter amount (min 100000)";
+      withdrawMessageSpan.textContent = `Minimum ${settings.min_withdraw_points_recharge} points are required for Mobile Recharge.`;
+      amountInput.placeholder = `Enter amount (min ${settings.min_withdraw_points_recharge})`;
       amountInput.value = '';
     } else {
       withdrawMessageSpan.textContent = '';
@@ -365,11 +384,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // মিনিমাম পয়েন্ট চেক করা হচ্ছে
     if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
-      minimumPoints = 10000;
+      minimumPoints = settings.min_withdraw_points_bkash;
     } else if (paymentMethod === 'grameenphone' || paymentMethod === 'robi' || paymentMethod === 'jio' || paymentMethod === 'airtel' || paymentMethod === 'banglalink' || paymentMethod === 'teletalk') {
-      minimumPoints = 2000;
-    } else if (paymentMethod === 'binance' || paymentMethod === 'webmoney') {
-      minimumPoints = 100000;
+      minimumPoints = settings.min_withdraw_points_recharge;
     } else {
       alert('Please select a valid payment method.');
       return;
@@ -403,13 +420,14 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       // Firebase থেকে পয়েন্ট মাইনাস করা হচ্ছে
       await updateDoc(usersDocRef(), {
-        points: FieldValue.increment(-minimumPoints)
+        points: FieldValue.increment(-minimumPoints),
+        lastWithdrawal: serverNow(),
       });
       totalPoints -= minimumPoints;
       updatePointsDisplay();
 
       // Vercel API Function-এ মেসেজ পাঠানোর জন্য রিকোয়েস্ট পাঠানো হচ্ছে
-      const res = await fetch('https://telegram-mini-app-admin-panel.vercel.app/api/update-status', {
+      const res = await fetch('https://telegram-mini-app-admin-panel.vercel.app/api/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -456,7 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Ad Timer =======================
-  const startAdTimer = (initialSeconds = adResetTimeInMinutes * 60) => {
+  const startAdTimer = (initialSeconds = settings.ad_reset_minutes * 60) => {
     let timeLeft = Math.ceil(initialSeconds);
     adTimerSpan.textContent = formatTime(timeLeft);
     watchAdBtn.disabled = true;
@@ -483,24 +501,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Watch Ad =======================
   watchAdBtn.addEventListener('click', async () => {
-    if (adsWatched >= maxAdsPerCycle) {
-      alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
+    if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
+      alert(`Please wait for the timer to finish.`);
       return;
     }
     if (typeof window.show_9673543 === 'function') {
       try {
         await window.show_9673543();
         adsWatched++;
-        totalPoints += pointsPerAd;
+        totalPoints += settings.ad_points;
         updateAdsCounter();
         updatePointsDisplay();
-        if (adsWatched >= maxAdsPerCycle) {
-          adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-          startAdTimer();
-          alert('You have watched all ads for this cycle. The timer has started!');
-        } else {
-          alert(`You earned ${pointsPerAd} points!`);
-        }
+        adCooldownEnds = new Date(Date.now() + settings.ad_reset_minutes * 60 * 1000);
+        startAdTimer();
+        alert(`You earned ${settings.ad_points} points! The timer has started.`);
         await saveUserDataToFirebase();
       } catch (e) {
         console.error('Ad error:', e);
