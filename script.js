@@ -11,7 +11,7 @@ import {
 
 // ==== Firebase কনফিগ Vercel থেকে লোড করা হচ্ছে ====
 const firebaseConfig = {
-  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc",
+  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq-GSz8aiIPoSohc",
   authDomain: "coin-bazar-f3093.firebaseapp.com",
   projectId: "coin-bazar-f3093",
   storageBucket: "coin-bazar-f3093.appspot.com",
@@ -41,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const taskButtons = document.querySelectorAll('.task-btn');
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
+  const profilePic = document.getElementById('profile-pic');
   
   // Withdraw UI elements
   const withdrawForm = document.getElementById('withdraw-form');
@@ -86,6 +87,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (referrerCode) {
         console.log("Referrer code found:", referrerCode);
       }
+      // Check for Telegram profile picture URL
+      if (telegramUser?.photo_url) {
+        profilePic.src = telegramUser.photo_url;
+      }
     } else {
       console.warn("Telegram user not found. Using fallback ID.");
       telegramId = 'fallback-test-user-id';
@@ -118,13 +123,11 @@ document.addEventListener("DOMContentLoaded", () => {
     await loadUserDataFromFirebase();
     updateReferralLinkInput();
     setInterval(updateTaskButtons, 1000);
-    // New: Load and display withdrawal history after user data is loaded
     loadWithdrawalHistory();
   });
 
   // ======================= Firestore Helpers =======================
   const usersDocRef = () => doc(db, "users", firebaseUID || "temp");
-  // New: Reference to the withdrawals collection
   const withdrawalsCollectionRef = () => collection(db, "withdrawals");
   const serverNow = () => serverTimestamp();
   const toDate = (maybeTs) => {
@@ -319,7 +322,6 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener('click', () => {
       const pageId = item.dataset.page + '-page';
       switchPage(pageId);
-      // New: If the withdrawal page is selected, load the history
       if (pageId === 'withdraw-page') {
         loadWithdrawalHistory();
       }
@@ -350,7 +352,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Withdraw =======================
-  // Payment Method সিলেক্ট পরিবর্তন হলে মেসেজ আপডেট করবে
   paymentMethodSelect.addEventListener('change', () => {
     const method = paymentMethodSelect.value;
     if (method === 'bkash' || method === 'nagad') {
@@ -378,7 +379,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const accountId = document.getElementById('account-id').value.trim();
     let minimumPoints = 0;
 
-    // মিনিমাম পয়েন্ট চেক করা হচ্ছে
     if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
       minimumPoints = 10000;
     } else if (paymentMethod === 'grameenphone' || paymentMethod === 'robi' || paymentMethod === 'jio' || paymentMethod === 'airtel' || paymentMethod === 'banglalink' || paymentMethod === 'teletalk') {
@@ -400,13 +400,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    // অটোমেটিক মিনিমাম পয়েন্ট কেটে নেওয়া হচ্ছে
     if (amount < minimumPoints) {
       alert(`The amount you entered is less than the minimum withdrawal amount of ${minimumPoints} points.`);
       return;
     }
 
-    // New: Save withdrawal request to Firebase
     const withdrawalDoc = doc(withdrawalsCollectionRef());
     const withdrawalData = {
       firebaseUID: firebaseUID,
@@ -416,11 +414,10 @@ document.addEventListener("DOMContentLoaded", () => {
       paymentMethod: paymentMethod,
       accountId: accountId,
       timestamp: serverNow(),
-      status: 'pending' // Initial status is pending
+      status: 'pending'
     };
     await setDoc(withdrawalDoc, withdrawalData);
 
-    // New: Update user's points and total withdrawal stats
     try {
       await updateDoc(usersDocRef(), {
         points: FieldValue.increment(-minimumPoints),
@@ -435,9 +432,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Telegram-এ মেসেজ পাঠানো হচ্ছে
     const telegramPayload = {
-      chat_id: '5932597801', // টার্গেট ইউজার ID
+      chat_id: '5932597801',
       text: `💰 **New Withdraw Request** 💰\n\n` +
             `👤 **User:** ${userName} (@${telegramUser.username})\n` +
             `🆔 **Telegram ID:** ${telegramId}\n` +
@@ -456,7 +452,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       alert('Withdrawal request submitted successfully!');
       e.target.reset();
-      // New: Reload history after successful withdrawal
       loadWithdrawalHistory();
     } catch (error) {
       console.error('Error submitting withdrawal request:', error);
@@ -464,17 +459,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   
-  // ======================= New: Withdrawal History Display =======================
+  // ======================= Withdrawal History Display =======================
   const loadWithdrawalHistory = async () => {
     if (!firebaseUID) return;
 
-    // Clear previous history
     withdrawalHistoryList.innerHTML = '<li class="loading-message">Loading history...</li>';
     totalWithdrawalsCount.textContent = '0';
     totalPointsWithdrawn.textContent = '0';
 
     try {
-      // Fetch user's stats for total counts
       const userDoc = await getDoc(usersDocRef());
       if (userDoc.exists()) {
         const userData = userDoc.data();
@@ -482,7 +475,6 @@ document.addEventListener("DOMContentLoaded", () => {
         totalPointsWithdrawn.textContent = userData.totalPointsWithdrawn || 0;
       }
       
-      // Fetch user's withdrawal requests
       const q = query(
         withdrawalsCollectionRef(),
         where("firebaseUID", "==", firebaseUID),
@@ -490,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       const querySnapshot = await getDocs(q);
 
-      withdrawalHistoryList.innerHTML = ''; // Clear loading message
+      withdrawalHistoryList.innerHTML = '';
 
       if (querySnapshot.empty) {
         withdrawalHistoryList.innerHTML = '<li class="no-history-message">No withdrawal history found.</li>';
@@ -580,27 +572,31 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
+    
+    // Check if Monetag script is loaded and `show_9673543` function exists
     if (typeof window.show_9673543 === 'function') {
-      try {
-        await window.show_9673543();
-        adsWatched++;
-        totalPoints += pointsPerAd;
-        updateAdsCounter();
-        updatePointsDisplay();
-        if (adsWatched >= maxAdsPerCycle) {
-          adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-          startAdTimer();
-          alert('You have watched all ads for this cycle. The timer has started!');
-        } else {
-          alert(`You earned ${pointsPerAd} points!`);
+        try {
+            await window.show_9673543();
+            adsWatched++;
+            totalPoints += pointsPerAd;
+            updateAdsCounter();
+            updatePointsDisplay();
+            if (adsWatched >= maxAdsPerCycle) {
+                adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                startAdTimer();
+                alert('You have watched all ads for this cycle. The timer has started!');
+            } else {
+                alert(`You earned ${pointsPerAd} points!`);
+            }
+            await saveUserDataToFirebase();
+        } catch (e) {
+            console.error('Ad error:', e);
+            alert('There was an error loading the ad. Please try again.');
         }
-        await saveUserDataToFirebase();
-      } catch (e) {
-        console.error('Ad error:', e);
-        alert('There was an error loading the ad. Please try again.');
-      }
     } else {
-      alert('Monetag script is not loaded. Please refresh the page.');
+        alert('Ad script not loaded. Please try again.');
+        // Optionally, you can reload the page to force the ad script to load
+        // window.location.reload();
     }
   });
 
