@@ -420,15 +420,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const payload = {
-      userName,
-      telegramId,
-      firebaseUID,
-      amount: amount,
-      paymentMethod,
-      accountId
-    };
-
     try {
       // 1. Point minus from Firebase
       await updateDoc(usersDocRef(), {
@@ -452,25 +443,6 @@ document.addEventListener("DOMContentLoaded", () => {
         accountId: accountId,
         timestamp: serverNow(),
         status: 'pending'
-      });
-      
-      // 3. Send message to your Telegram ID
-      const telegramPayload = {
-        chat_id: ADMIN_TELEGRAM_ID,
-        text: `💰 **New Withdraw Request** 💰\n\n` +
-              `👤 **User:** ${userName} (@${telegramUser.username || 'N/A'})\n` +
-              `🆔 **Telegram ID:** ${telegramId}\n` +
-              `💳 **Payment Method:** ${paymentMethod}\n` +
-              `💵 **Amount:** ${amount} Points\n` +
-              `🔢 **Account ID:** ${accountId}\n\n` +
-              `_This request was automatically sent from the Coin Bazar Mini App._`,
-        parse_mode: 'Markdown'
-      };
-
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(telegramPayload)
       });
       
       alert('Withdrawal request submitted successfully!');
