@@ -233,7 +233,10 @@ document.addEventListener("DOMContentLoaded", () => {
         lastUpdated: serverNow(),
         hasReferrer: !!referrerCode,
         referralCount: 0,
-        referralPointsEarned: 0
+        referralPointsEarned: 0,
+        // নতুন দুটি ফিল্ড যোগ করা হয়েছে
+        totalWithdrawalsCount: 0,
+        totalPointsWithdrawn: 0
       }, { merge: true });
     } catch (error) {
       console.error("Error saving data:", error);
@@ -265,6 +268,9 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Update referral stats
         updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
+        // এই লাইনগুলো আপডেট করা হয়েছে যাতে ফিল্ড না থাকলে 0 দেখায়
+        totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
+        totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
 
       } else {
         let newName = telegramUser?.first_name || 'User';
@@ -272,7 +278,24 @@ document.addEventListener("DOMContentLoaded", () => {
         userName = newName;
         referralCodeInput.value = generateReferralCode();
         totalPoints = referrerCode ? newUserPoints : 0;
-        await saveUserDataToFirebase();
+        
+        // নতুন ডকুমেন্ট তৈরির সময় এই ফিল্ডগুলো যোগ করা হয়েছে
+        await setDoc(usersDocRef(), {
+          firebaseUID,
+          telegramId,
+          userName,
+          points: totalPoints,
+          adsWatched: 0,
+          adsCooldownEnds: null,
+          taskTimers: {},
+          referralCode: referralCodeInput.value,
+          lastUpdated: serverNow(),
+          hasReferrer: !!referrerCode,
+          referralCount: 0,
+          referralPointsEarned: 0,
+          totalWithdrawalsCount: 0,
+          totalPointsWithdrawn: 0
+        });
       }
       userNameDisplay.textContent = userName;
       welcomeUserNameDisplay.textContent = userName;
