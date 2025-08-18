@@ -44,28 +44,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
   const profilePic = document.getElementById('profile-pic');
-  
+
   // Withdraw UI elements
   const withdrawForm = document.getElementById('withdraw-form');
   const paymentMethodSelect = document.getElementById('payment-method');
   const amountInput = document.getElementById('amount');
   const withdrawMessageSpan = document.getElementById('withdraw-message');
-  const submitRequestBtn = document.getElementById('submit-request-btn');
-  
-  // Withdrawal History UI elements (এগুলো এখন ব্যবহার হচ্ছে না, কিন্তু UI তে আছে)
+
+  // New Withdrawal History UI elements
+  const withdrawalHistoryList = document.getElementById('withdrawal-history-list');
   const totalWithdrawalsCount = document.getElementById('total-withdrawals-count');
   const totalPointsWithdrawn = document.getElementById('total-points-withdrawn');
-  
+
   // Referral UI elements
   const shareBtn = document.querySelector('.share-btn');
   const referralCountDisplay = document.getElementById('referral-count');
   const referralPointsEarnedDisplay = document.getElementById('referral-points-earned');
-
-  // Bonus UI elements
-  const officialChannelBtn = document.getElementById('official-channel-btn');
-  const supportGroupBtn = document.getElementById('support-group-btn');
-  const telegramCommunityBtn = document.getElementById('telegram-community-btn');
-  const whatsappCommunityBtn = document.getElementById('whatsapp-community-btn');
 
   // ---------- State ----------
   let adsWatched = 0;
@@ -79,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pointsPerTask = 10;
   const referrerPoints = 200; // রেফারকারী পাবে
   const newUserPoints = 100; // নতুন ইউজার পাবে
-  const bonusPoints = 50; // বোনাসের জন্য পয়েন্ট
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -89,10 +82,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   const taskCooldownInHours = 1;
   let taskTimers = {};
-  let claimedBonuses = {}; // বোনাস ট্র্যাক করার জন্য নতুন ভেরিয়েবল
   let telegramId = null;
   let telegramUser = null;
   let referrerCode = null;
+
+  const TELEGRAM_BOT_TOKEN = '7812568979:AAGHvXfEufrcDBopGtGCPAmsFVIBWelFz3g';
+  const ADMIN_TELEGRAM_ID = '5932597801';
 
   // ======================= Telegram Init =======================
   try {
@@ -135,10 +130,6 @@ document.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     firebaseUID = user.uid;
-    // বাটনে লোডিং অবস্থা সেট করা হয়েছে
-    submitRequestBtn.disabled = false;
-    submitRequestBtn.textContent = 'Submit Request';
-    
     await loadUserDataFromFirebase();
     updateReferralLinkInput();
     setInterval(updateTaskButtons, 1000);
@@ -146,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Firestore Helpers =======================
   const usersDocRef = () => doc(db, "users", firebaseUID || "temp");
+  const withdrawalsCollectionRef = () => collection(db, "withdrawals");
   const serverNow = () => serverTimestamp();
   const toDate = (maybeTs) => {
     try {
@@ -153,7 +145,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (maybeTs instanceof Date) return maybeTs;
       if (maybeTs.toDate && typeof maybeTs.toDate === 'function') return maybeTs.toDate();
       return new Date(maybeTs);
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   };
 
   // ======================= UI Updates =======================
@@ -166,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(adsWatched);
-    
+
     if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
       watchAdBtn.textContent = 'Waiting for timer to finish';
@@ -174,10 +168,11 @@ document.addEventListener("DOMContentLoaded", () => {
       watchAdBtn.disabled = false;
       watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
     }
+
   };
   const updateReferralStats = (referralCount, pointsEarned) => {
-      referralCountDisplay.textContent = referralCount;
-      referralPointsEarnedDisplay.textContent = pointsEarned;
+    referralCountDisplay.textContent = referralCount;
+    referralPointsEarnedDisplay.textContent = pointsEarned;
   };
   const switchPage = (pageId) => {
     pages.forEach(p => p.classList.remove('active'));
@@ -242,10 +237,9 @@ document.addEventListener("DOMContentLoaded", () => {
         hasReferrer: !!referrerCode,
         referralCount: 0,
         referralPointsEarned: 0,
+        // নতুন দুটি ফিল্ড যোগ করা হয়েছে
         totalWithdrawalsCount: 0,
-        totalPointsWithdrawn: 0,
-        // বোনাস ট্র্যাক করার জন্য নতুন ফিল্ড
-        claimedBonuses
+        totalPointsWithdrawn: 0
       }, { merge: true });
     } catch (error) {
       console.error("Error saving data:", error);
@@ -261,24 +255,25 @@ document.addEventListener("DOMContentLoaded", () => {
         totalPoints = data.points || 0;
         adsWatched = data.adsWatched || 0;
         taskTimers = data.taskTimers || {};
-        claimedBonuses = data.claimedBonuses || {}; // ডেটা লোড করা
         if (data.adsCooldownEnds) {
           adCooldownEnds = toDate(data.adsCooldownEnds);
         } else {
           adCooldownEnds = null;
         }
         referralCodeInput.value = data.referralCode || generateReferralCode();
-        
+
+        // Award points to new user if referred  
         if (referrerCode && !data.hasReferrer) {
           totalPoints += newUserPoints;
           await awardReferralPoints(referrerCode);
           await saveUserDataToFirebase();
         }
-        
+
+        // Update referral stats  
         updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
+        // এই লাইনগুলো আপডেট করা হয়েছে যাতে ফিল্ড না থাকলে 0 দেখায়  
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
-        updateBonusButtons(); // বোনাস বাটন আপডেট করা
 
       } else {
         let newName = telegramUser?.first_name || 'User';
@@ -286,7 +281,8 @@ document.addEventListener("DOMContentLoaded", () => {
         userName = newName;
         referralCodeInput.value = generateReferralCode();
         totalPoints = referrerCode ? newUserPoints : 0;
-        
+
+        // নতুন ডকুমেন্ট তৈরির সময় এই ফিল্ডগুলো যোগ করা হয়েছে  
         await setDoc(usersDocRef(), {
           firebaseUID,
           telegramId,
@@ -301,8 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
           referralCount: 0,
           referralPointsEarned: 0,
           totalWithdrawalsCount: 0,
-          totalPointsWithdrawn: 0,
-          claimedBonuses: {} // নতুন ডকুমেন্ট তৈরির সময় খালি অবজেক্ট যোগ করা হয়েছে
+          totalPointsWithdrawn: 0
         });
       }
       userNameDisplay.textContent = userName;
@@ -310,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
       updatePointsDisplay();
       updateAdsCounter();
       updateTaskButtons();
-      
+
       if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
         const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
         startAdTimer(secondsLeft);
@@ -359,7 +354,9 @@ document.addEventListener("DOMContentLoaded", () => {
       button.disabled = true;
       const newWindow = window.open(taskUrl, '_blank');
       setTimeout(async () => {
-        try { if (newWindow) newWindow.close(); } catch {}
+        try {
+          if (newWindow) newWindow.close();
+        } catch {}
         alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
         totalPoints += pointsPerTask;
         updatePointsDisplay();
@@ -376,6 +373,9 @@ document.addEventListener("DOMContentLoaded", () => {
     item.addEventListener('click', () => {
       const pageId = item.dataset.page + '-page';
       switchPage(pageId);
+      if (pageId === 'withdraw-page') {
+        loadWithdrawalHistory();
+      }
     });
   });
 
@@ -385,15 +385,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const input = e.target.previousElementSibling;
       input.select();
       input.setSelectionRange(0, 99999);
-      navigator.clipboard.writeText(input.value);
+      document.execCommand('copy');
       alert('Copied to clipboard!');
     });
   });
-  
+
+  // Update Share link button logic
   shareBtn.addEventListener('click', () => {
     const referralLink = referralLinkInput.value;
     const shareText = `Join Coin Bazar Mini App and earn daily rewards! Use my referral link to get a bonus of ${newUserPoints} points. My referral code is: ${referralCodeInput.value}\n\n${referralLink}`;
-    
+
     if (navigator.share) {
       navigator.share({
         title: 'Join Coin Bazar',
@@ -402,10 +403,13 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error('Error sharing:', error);
       });
     } else {
+      // Fallback for browsers that don't support Web Share API  
       alert('Your browser does not support the Web Share API. Please copy the link manually.');
+      // Fallback to copy the link to clipboard  
       referralLinkInput.select();
-      navigator.clipboard.writeText(referralLinkInput.value);
+      document.execCommand('copy');
     }
+
   });
 
   // ======================= Withdraw =======================
@@ -428,123 +432,133 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // সম্পূর্ণ নতুন উইথড্রয়াল লজিক
   withdrawForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    if (!firebaseUID) {
-      alert('Authentication error. Please refresh the page.');
-      return;
-    }
-
     const paymentMethod = paymentMethodSelect.value;
     const amount = Number(amountInput.value || 0);
     const accountId = document.getElementById('account-id').value.trim();
 
     if (!paymentMethod || amount <= 0 || !accountId) {
-        alert('Please fill out all fields correctly.');
-        return;
+      alert('Please fill out all fields correctly.');
+      return;
     }
-    
+
     if (totalPoints < amount) {
-        alert(`Not enough points. You only have ${totalPoints} points.`);
-        return;
+      alert(`Not enough points. You only have ${totalPoints} points.`);
+      return;
+    }
+
+    if (!firebaseUID) {
+      alert('Authentication error. Please refresh the page and try again.');
+      return;
     }
 
     try {
-      // পয়েন্ট মাইনাস করা
+      // 1. Point minus from Firebase using manual update logic
+      const userDoc = await getDoc(usersDocRef());
+      if (!userDoc.exists()) {
+        alert('User data not found.');
+        return;
+      }
+      const userData = userDoc.data();
+      const newPoints = (userData.points || 0) - amount;
+      const newTotalWithdrawals = (userData.totalWithdrawalsCount || 0) + 1;
+      const newTotalPointsWithdrawn = (userData.totalPointsWithdrawn || 0) + amount;
+
       await updateDoc(usersDocRef(), {
-        points: FieldValue.increment(-amount),
-        totalWithdrawalsCount: FieldValue.increment(1),
-        totalPointsWithdrawn: FieldValue.increment(amount)
+        points: newPoints,
+        totalWithdrawalsCount: newTotalWithdrawals,
+        totalPointsWithdrawn: newTotalPointsWithdrawn
       });
 
-      // স্থানীয় অবস্থা আপডেট করা
-      totalPoints -= amount;
+      // Update local state
+      totalPoints = newPoints;
       updatePointsDisplay();
-      
-      // মেসেজ তৈরি করা
-      const message = `
-*উইথড্রয়াল রিকোয়েস্ট*
-----------------------------------------
-*নাম:* ${userName}
-*ইউজার আইডি:* ${telegramId}
-*রেফার কোড:* ${referralCodeInput.value}
-*পেমেন্ট মেথড:* ${paymentMethod}
-*অ্যাকাউন্ট আইডি:* ${accountId}
-*অ্যামাউন্ট:* ${amount} পয়েন্ট
-----------------------------------------
-_মেসেজটি সেন্ড করতে নিচে পেস্ট করুন।_
-      `.trim();
-      
-      // ক্লিপবোর্ডে মেসেজ কপি করা
-      await navigator.clipboard.writeText(message);
-      
-      // টেলিগ্রাম চ্যানেলে রিডাইরেক্ট করা
-      window.location.href = 'https://t.me/coinbazarmessage';
-      
-      alert('উইথড্রয়াল রিকোয়েস্টের তথ্য কপি করা হয়েছে! টেলিগ্রামে মেসেজটি পেস্ট করে সেন্ড করুন।');
+      totalWithdrawalsCount.textContent = newTotalWithdrawals;
+      totalPointsWithdrawn.textContent = newTotalPointsWithdrawn;
+
+      // 2. Save withdrawal request to Firestore  
+      const withdrawalDoc = doc(withdrawalsCollectionRef());
+      await setDoc(withdrawalDoc, {
+        firebaseUID: firebaseUID,
+        telegramId: telegramId,
+        userName: userName,
+        amount: amount,
+        paymentMethod: paymentMethod,
+        accountId: accountId,
+        timestamp: serverNow(),
+        status: 'pending'
+      });
+
+      alert('Withdrawal request submitted successfully!');
       e.target.reset();
-      
+      loadWithdrawalHistory(); // Refresh history  
+
     } catch (error) {
-      console.error('Error in withdrawal process:', error);
+      console.error('Error submitting withdrawal request:', error);
       alert('An error occurred. Please check your connection and try again.');
     }
   });
-  
-  // ======================= Bonus Rewards =======================
-  // বোনাস বাটন আপডেট করার ফাংশন
-  const updateBonusButtons = () => {
-    if (claimedBonuses.officialChannel) {
-      officialChannelBtn.textContent = "Claimed!";
-      officialChannelBtn.disabled = true;
-    }
-    if (claimedBonuses.supportGroup) {
-      supportGroupBtn.textContent = "Claimed!";
-      supportGroupBtn.disabled = true;
-    }
-    // অন্যান্য বোনাস বাটনের জন্য একই লজিক
-    if (claimedBonuses.telegramCommunity) {
-      telegramCommunityBtn.textContent = "Claimed!";
-      telegramCommunityBtn.disabled = true;
-    }
-    if (claimedBonuses.whatsappCommunity) {
-      whatsappCommunityBtn.textContent = "Claimed!";
-      whatsappCommunityBtn.disabled = true;
-    }
-  };
 
-  // বোনাস বাটনের জন্য ক্লিক ইভেন্ট লিসেনার
-  const addBonusListener = (button, bonusName, url) => {
-    button.addEventListener('click', async () => {
-      if (claimedBonuses[bonusName]) {
-        alert('আপনি ইতিমধ্যেই এই বোনাসটি পেয়েছেন!');
-        return;
+  // ======================= Withdrawal History Display =======================
+  const loadWithdrawalHistory = async () => {
+    if (!firebaseUID) {
+      withdrawalHistoryList.innerHTML = '<li class="error-message">Authentication error. Please refresh the page.</li>';
+      return;
+    }
+
+    withdrawalHistoryList.innerHTML = '<li class="loading-message">Loading history...</li>';
+    totalWithdrawalsCount.textContent = '0';
+    totalPointsWithdrawn.textContent = '0';
+
+    try {
+      const userDoc = await getDoc(usersDocRef());
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        totalWithdrawalsCount.textContent = userData.totalWithdrawalsCount || 0;
+        totalPointsWithdrawn.textContent = userData.totalPointsWithdrawn || 0;
       }
-      
-      // পয়েন্ট যোগ করা এবং Firebase-এ সেভ করা
-      totalPoints += bonusPoints;
-      claimedBonuses[bonusName] = true;
-      await saveUserDataToFirebase();
-      updatePointsDisplay();
-      
-      alert(`আপনি ${bonusPoints} পয়েন্ট পেয়েছেন!`);
-      
-      // বাটন নিষ্ক্রিয় করা এবং টেক্সট পরিবর্তন করা
-      button.textContent = 'Claimed!';
-      button.disabled = true;
-      
-      // টেলিগ্রামে রিডাইরেক্ট করা
-      window.open(url, '_blank');
-    });
-  };
 
-  // প্রতিটি বোনাস বাটনে লিসেনার যোগ করা
-  addBonusListener(officialChannelBtn, 'officialChannel', 'https://t.me/coinbazarmessage');
-  addBonusListener(supportGroupBtn, 'supportGroup', 'https://t.me/CoinBazarWithdraRequest');
-  // অন্যান্য বোনাস বাটনের জন্য লিসেনার যোগ করা
-  addBonusListener(telegramCommunityBtn, 'telegramCommunity', 'https://t.me/CoinBazar_bot');
-  addBonusListener(whatsappCommunityBtn, 'whatsappCommunity', 'https://chat.whatsapp.com/GfJkI21qL854bKq9tL7018');
+      const q = query(
+        withdrawalsCollectionRef(),
+        where("firebaseUID", "==", firebaseUID),
+        orderBy("timestamp", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+
+      withdrawalHistoryList.innerHTML = '';
+
+      if (querySnapshot.empty) {
+        withdrawalHistoryList.innerHTML = '<li class="no-history-message">No withdrawal history found.</li>';
+      } else {
+        querySnapshot.forEach(doc => {
+          const withdrawal = doc.data();
+          const date = withdrawal.timestamp ? toDate(withdrawal.timestamp).toLocaleDateString() : 'N/A';
+          const time = withdrawal.timestamp ? toDate(withdrawal.timestamp).toLocaleTimeString() : 'N/A';
+
+          const listItem = document.createElement('li');
+          listItem.className = `withdrawal-item ${withdrawal.status}`;
+
+          const statusText = withdrawal.status.charAt(0).toUpperCase() + withdrawal.status.slice(1);
+
+          listItem.innerHTML = `  
+            <div class="withdrawal-info">  
+              <span>Method: ${withdrawal.paymentMethod}</span>  
+              <span class="withdrawal-amount">Amount: ${withdrawal.amount} Points</span>  
+            </div>  
+            <div class="withdrawal-details">  
+              <span>Date: ${date} ${time}</span>  
+              <span class="status ${withdrawal.status}">${statusText}</span>  
+            </div>  
+          `;
+          withdrawalHistoryList.appendChild(listItem);
+        });
+      }
+    } catch (error) {
+      console.error("Error loading withdrawal history:", error);
+      withdrawalHistoryList.innerHTML = '<li class="error-message">Error loading history. Please try again.</li>';
+    }
+  };
 
   // ======================= Name Edit =======================
   editNameBtn.addEventListener('click', () => {
@@ -602,41 +616,41 @@ _মেসেজটি সেন্ড করতে নিচে পেস্ট
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
-    
+
     if (typeof window.show_9673543 === 'function') {
       try {
         await window.show_9673543().then(() => {
+          adsWatched++;
+          totalPoints += pointsPerAd;
+          updateAdsCounter();
+          updatePointsDisplay();
+          if (adsWatched >= maxAdsPerCycle) {
+            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+            startAdTimer();
+            alert('You have watched all ads for this cycle. The timer has started!');
+          } else {
+            alert(`You earned ${pointsPerAd} points!`);
+          }
+          saveUserDataToFirebase();
+        }).catch(async (e) => {
+          console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
+          await window.show_9673543('pop').then(() => {
             adsWatched++;
             totalPoints += pointsPerAd;
             updateAdsCounter();
             updatePointsDisplay();
             if (adsWatched >= maxAdsPerCycle) {
-                adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-                startAdTimer();
-                alert('You have watched all ads for this cycle. The timer has started!');
+              adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+              startAdTimer();
+              alert('You have watched all ads for this cycle. The timer has started!');
             } else {
-                alert(`You earned ${pointsPerAd} points!`);
+              alert(`You earned ${pointsPerAd} points!`);
             }
             saveUserDataToFirebase();
-        }).catch(async (e) => {
-            console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
-            await window.show_9673543('pop').then(() => {
-                adsWatched++;
-                totalPoints += pointsPerAd;
-                updateAdsCounter();
-                updatePointsDisplay();
-                if (adsWatched >= maxAdsPerCycle) {
-                    adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-                    startAdTimer();
-                    alert('You have watched all ads for this cycle. The timer has started!');
-                } else {
-                    alert(`You earned ${pointsPerAd} points!`);
-                }
-                saveUserDataToFirebase();
-            }).catch(e => {
-                console.error('Rewarded Popup also failed:', e);
-                alert('There was an error loading the ad. Please try again.');
-            });
+          }).catch(e => {
+            console.error('Rewarded Popup also failed:', e);
+            alert('There was an error loading the ad. Please try again.');
+          });
         });
       } catch (e) {
         console.error('Ad function call failed:', e);
