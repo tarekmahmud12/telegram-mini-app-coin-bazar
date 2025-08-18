@@ -442,6 +442,12 @@ document.addEventListener("DOMContentLoaded", () => {
         alert(`Not enough points. You only have ${totalPoints} points.`);
         return;
     }
+    
+    // এখানে firebaseUID এর জন্য একটি অতিরিক্ত চেক যোগ করা হয়েছে
+    if (!firebaseUID) {
+      alert('Authentication error. Please refresh the page and try again.');
+      return;
+    }
 
     try {
       // 1. Point minus from Firebase
@@ -480,7 +486,10 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // ======================= Withdrawal History Display =======================
   const loadWithdrawalHistory = async () => {
-    if (!firebaseUID) return;
+    if (!firebaseUID) {
+      withdrawalHistoryList.innerHTML = '<li class="error-message">Authentication error. Please refresh the page.</li>';
+      return;
+    }
 
     withdrawalHistoryList.innerHTML = '<li class="loading-message">Loading history...</li>';
     totalWithdrawalsCount.textContent = '0';
