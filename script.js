@@ -71,8 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let userName = 'User';
   const pointsPerAd = 5;
   const pointsPerTask = 10;
-  const referrerPoints = 200; // রেফারকারী পাবে
-  const newUserPoints = 0; // নতুন ইউজার কোনো বোনাস পাবে না
+  const referrerPoints = 200;
+  const newUserPoints = 0;
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Telegram Init =======================
   try {
-    if (window.Telegram?.WebApp?.initDataUnsafe) {
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
       telegramId = String(telegramUser.id);
       referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
@@ -261,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
-
+        
         // Check if user has a referrer and if the bonus has not been processed yet
         if (referrerCode && !data.hasReferrer) {
             await awardReferralPoints(referrerCode);
@@ -306,11 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         totalPoints = 0;
         referralCodeInput.value = newReferralCode;
-
-        // If there's a referrer, award them points immediately after the new user's doc is created
-        if (referrerCode) {
-            await awardReferralPoints(referrerCode);
-        }
       }
       
       // Update UI after loading/setting data
