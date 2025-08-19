@@ -245,6 +245,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error saving data:", error);
     }
   };
+  
+  // ======================= UPDATED loadUserDataFromFirebase =======================
   const loadUserDataFromFirebase = async () => {
     if (!firebaseUID) return;
     try {
@@ -262,44 +264,68 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         referralCodeInput.value = data.referralCode || generateReferralCode();
 
-        // Award points to new user if referred  
+        // Check and award points to new user if referred
+        // এই লজিকটি Firebase এ ডেটা লোড করার পর একবারে চালানো উচিত।
         if (referrerCode && !data.hasReferrer) {
+          // নতুন ইউজারকে বোনাস দিন
           totalPoints += newUserPoints;
+
+          // রেফারারকে পয়েন্ট দিন ও তার রেফারেল কাউন্ট আপডেট করুন
           await awardReferralPoints(referrerCode);
-          await saveUserDataToFirebase();
+
+          // ডেটাবেসে আপডেট করুন
+          await updateDoc(usersDocRef(), {
+            points: totalPoints,
+            hasReferrer: true, // এটি নিশ্চিত করে যে রেফারেল বোনাস একবারই দেওয়া হয়েছে
+            lastUpdated: serverNow()
+          });
+
+          console.log("New user points awarded and referrer rewarded.");
         }
 
-        // Update referral stats  
+        // Update referral stats
         updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
-        // এই লাইনগুলো আপডেট করা হয়েছে যাতে ফিল্ড না থাকলে 0 দেখায়  
+
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
 
       } else {
+        // নতুন ইউজারের জন্য ডকুমেন্ট তৈরি করুন
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
-        referralCodeInput.value = generateReferralCode();
-        totalPoints = referrerCode ? newUserPoints : 0;
+        const newReferralCode = generateReferralCode();
+        let initialPoints = 0;
+        let hasReferrer = false;
 
-        // নতুন ডকুমেন্ট তৈরির সময় এই ফিল্ডগুলো যোগ করা হয়েছে  
+        // যদি রেফারেল কোড থাকে, তাহলে নতুন ইউজারকে বোনাস পয়েন্ট দিন
+        if (referrerCode) {
+          initialPoints = newUserPoints;
+          hasReferrer = true;
+          await awardReferralPoints(referrerCode);
+        }
+
         await setDoc(usersDocRef(), {
           firebaseUID,
           telegramId,
           userName,
-          points: totalPoints,
+          points: initialPoints,
           adsWatched: 0,
           adsCooldownEnds: null,
           taskTimers: {},
-          referralCode: referralCodeInput.value,
+          referralCode: newReferralCode,
           lastUpdated: serverNow(),
-          hasReferrer: !!referrerCode,
+          hasReferrer: hasReferrer,
           referralCount: 0,
           referralPointsEarned: 0,
           totalWithdrawalsCount: 0,
           totalPointsWithdrawn: 0
         });
+
+        totalPoints = initialPoints;
+        referralCodeInput.value = newReferralCode;
       }
+
       userNameDisplay.textContent = userName;
       welcomeUserNameDisplay.textContent = userName;
       updatePointsDisplay();
@@ -403,9 +429,9 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error('Error sharing:', error);
       });
     } else {
-      // Fallback for browsers that don't support Web Share API  
+      // Fallback for browsers that don't support Web Share API
       alert('Your browser does not support the Web Share API. Please copy the link manually.');
-      // Fallback to copy the link to clipboard  
+      // Fallback to copy the link to clipboard
       referralLinkInput.select();
       document.execCommand('copy');
     }
@@ -477,7 +503,7 @@ document.addEventListener("DOMContentLoaded", () => {
       totalWithdrawalsCount.textContent = newTotalWithdrawals;
       totalPointsWithdrawn.textContent = newTotalPointsWithdrawn;
 
-      // 2. Save withdrawal request to Firestore  
+      // 2. Save withdrawal request to Firestore
       const withdrawalDoc = doc(withdrawalsCollectionRef());
       await setDoc(withdrawalDoc, {
         firebaseUID: firebaseUID,
@@ -492,7 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       alert('Withdrawal request submitted successfully!');
       e.target.reset();
-      loadWithdrawalHistory(); // Refresh history  
+      loadWithdrawalHistory(); // Refresh history
 
     } catch (error) {
       console.error('Error submitting withdrawal request:', error);
@@ -541,15 +567,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const statusText = withdrawal.status.charAt(0).toUpperCase() + withdrawal.status.slice(1);
 
-          listItem.innerHTML = `  
-            <div class="withdrawal-info">  
-              <span>Method: ${withdrawal.paymentMethod}</span>  
-              <span class="withdrawal-amount">Amount: ${withdrawal.amount} Points</span>  
-            </div>  
-            <div class="withdrawal-details">  
-              <span>Date: ${date} ${time}</span>  
-              <span class="status ${withdrawal.status}">${statusText}</span>  
-            </div>  
+          listItem.innerHTML = `
+            <div class="withdrawal-info">
+              <span>Method: ${withdrawal.paymentMethod}</span>
+              <span class="withdrawal-amount">Amount: ${withdrawal.amount} Points</span>
+            </div>
+            <div class="withdrawal-details">
+              <span>Date: ${date} ${time}</span>
+              <span class="status ${withdrawal.status}">${statusText}</span>
+            </div>
           `;
           withdrawalHistoryList.appendChild(listItem);
         });
