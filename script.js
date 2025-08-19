@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const pointsPerAd = 5;
   const pointsPerTask = 10;
   const referrerPoints = 200; // রেফারকারী পাবে
-  const newUserPoints = 100; // নতুন ইউজার পাবে
+  const newUserPoints = 0; // নতুন ইউজার কোনো বোনাস পাবে না
   const taskUrls = {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
@@ -264,23 +264,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         referralCodeInput.value = data.referralCode || generateReferralCode();
 
-        // Check and award points to new user if referred
-        // এই লজিকটি Firebase এ ডেটা লোড করার পর একবারে চালানো উচিত।
+        // Check and award points to referrer only if new user is joining
         if (referrerCode && !data.hasReferrer) {
-          // নতুন ইউজারকে বোনাস দিন
-          totalPoints += newUserPoints;
-
           // রেফারারকে পয়েন্ট দিন ও তার রেফারেল কাউন্ট আপডেট করুন
           await awardReferralPoints(referrerCode);
 
-          // ডেটাবেসে আপডেট করুন
+          // ডেটাবেসে আপডেট করুন যাতে এটি নিশ্চিত করে যে রেফারেল বোনাস একবারই দেওয়া হয়েছে
           await updateDoc(usersDocRef(), {
-            points: totalPoints,
-            hasReferrer: true, // এটি নিশ্চিত করে যে রেফারেল বোনাস একবারই দেওয়া হয়েছে
+            hasReferrer: true,
             lastUpdated: serverNow()
           });
 
-          console.log("New user points awarded and referrer rewarded.");
+          console.log("Referrer points awarded.");
         }
 
         // Update referral stats
@@ -295,12 +290,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
         const newReferralCode = generateReferralCode();
-        let initialPoints = 0;
         let hasReferrer = false;
 
-        // যদি রেফারেল কোড থাকে, তাহলে নতুন ইউজারকে বোনাস পয়েন্ট দিন
         if (referrerCode) {
-          initialPoints = newUserPoints;
           hasReferrer = true;
           await awardReferralPoints(referrerCode);
         }
@@ -309,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
           firebaseUID,
           telegramId,
           userName,
-          points: initialPoints,
+          points: 0,
           adsWatched: 0,
           adsCooldownEnds: null,
           taskTimers: {},
@@ -322,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
           totalPointsWithdrawn: 0
         });
 
-        totalPoints = initialPoints;
+        totalPoints = 0;
         referralCodeInput.value = newReferralCode;
       }
 
@@ -419,7 +411,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Update Share link button logic
   shareBtn.addEventListener('click', () => {
     const referralLink = referralLinkInput.value;
-    const shareText = `Join Coin Bazar Mini App and earn daily rewards! Use my referral link to get a bonus of ${newUserPoints} points. My referral code is: ${referralCodeInput.value}\n\n${referralLink}`;
+    const shareText = `Join Coin Bazar Mini App and earn daily rewards! My referral code is: ${referralCodeInput.value}\n\n${referralLink}`;
 
     if (navigator.share) {
       navigator.share({
