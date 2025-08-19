@@ -79,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b6d7d99d8d92682690909edc3',
     '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '6': 'https://otieu.com/4/9569264',
   };
   const taskCooldownInHours = 1;
   let taskTimers = {};
