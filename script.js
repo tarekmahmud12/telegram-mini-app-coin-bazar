@@ -234,12 +234,6 @@ document.addEventListener("DOMContentLoaded", () => {
         taskTimers: timersToSave,
         referralCode: referralCodeInput.value || generateReferralCode(),
         lastUpdated: serverNow(),
-        hasReferrer: !!referrerCode,
-        referralCount: 0,
-        referralPointsEarned: 0,
-        // নতুন দুটি ফিল্ড যোগ করা হয়েছে
-        totalWithdrawalsCount: 0,
-        totalPointsWithdrawn: 0
       }, { merge: true });
     } catch (error) {
       console.error("Error saving data:", error);
@@ -251,6 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!firebaseUID) return;
     try {
       const snap = await getDoc(usersDocRef());
+
       if (snap.exists()) {
         const data = snap.data();
         userName = data.userName || (telegramUser?.first_name || 'User');
@@ -263,38 +258,33 @@ document.addEventListener("DOMContentLoaded", () => {
           adCooldownEnds = null;
         }
         referralCodeInput.value = data.referralCode || generateReferralCode();
-
-        // Check and award points to referrer only if new user is joining
-        if (referrerCode && !data.hasReferrer) {
-          // রেফারারকে পয়েন্ট দিন ও তার রেফারেল কাউন্ট আপডেট করুন
-          await awardReferralPoints(referrerCode);
-
-          // ডেটাবেসে আপডেট করুন যাতে এটি নিশ্চিত করে যে রেফারেল বোনাস একবারই দেওয়া হয়েছে
-          await updateDoc(usersDocRef(), {
-            hasReferrer: true,
-            lastUpdated: serverNow()
-          });
-
-          console.log("Referrer points awarded.");
-        }
-
-        // Update referral stats
         updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
-
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
 
+        // Check if user has a referrer and if the bonus has not been processed yet
+        if (referrerCode && !data.hasReferrer) {
+            await awardReferralPoints(referrerCode);
+            // After awarding points, update the new user's own document
+            await updateDoc(usersDocRef(), {
+                hasReferrer: true,
+                lastUpdated: serverNow()
+            });
+            console.log("Referral bonus processed for new user.");
+        }
+        
       } else {
-        // নতুন ইউজারের জন্য ডকুমেন্ট তৈরি করুন
+        // New user logic
         let newName = telegramUser?.first_name || 'User';
         if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
         userName = newName;
         const newReferralCode = generateReferralCode();
         let hasReferrer = false;
 
+        // If a referrer code exists, set hasReferrer to true
         if (referrerCode) {
-          hasReferrer = true;
-          await awardReferralPoints(referrerCode);
+            hasReferrer = true;
+            // The awardReferralPoints function is called below in the `setDoc` call
         }
 
         await setDoc(usersDocRef(), {
@@ -316,8 +306,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         totalPoints = 0;
         referralCodeInput.value = newReferralCode;
-      }
 
+        // If there's a referrer, award them points immediately after the new user's doc is created
+        if (referrerCode) {
+            await awardReferralPoints(referrerCode);
+        }
+      }
+      
+      // Update UI after loading/setting data
       userNameDisplay.textContent = userName;
       welcomeUserNameDisplay.textContent = userName;
       updatePointsDisplay();
@@ -617,7 +613,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adCooldownEnds = null;
         updateAdsCounter();
         adTimerSpan.textContent = 'Ready!';
-        await saveUserDataToFirebase();
+        saveUserDataToFirebase();
       }
     }, 1000);
   };
