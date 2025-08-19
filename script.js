@@ -77,9 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
     '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b6d7d99d8d92682690909edc3',
-    '5': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '6': 'https://otieu.com/4/9569264',
+    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+    '5': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
+    '6': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
   };
   const taskCooldownInHours = 1;
   let taskTimers = {};
