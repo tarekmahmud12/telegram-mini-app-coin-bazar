@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const welcomeUserNameDisplay = document.getElementById('welcome-user-name');
   const editNameBtn = document.getElementById('edit-name-btn');
   const adsLeftValue = document.getElementById('ads-left-value');
-  const totalAdsWatched = document.getElementById('total-ads-watched');
+  const totalAdsWatched = document.getElementById('total-ads-watched'); // Changed
   const welcomeAdsLeft = document.getElementById('welcome-ads-left');
   const watchAdBtn = document.querySelector('.watch-ad-btn');
   const taskButtons = document.querySelectorAll('.task-btn');
@@ -64,6 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- State ----------
   let adsWatched = 0;
+  let dailyAdsWatched = 0; // Changed
   const maxAdsPerCycle = 10;
   const adResetTimeInMinutes = 15;
   let adTimerInterval = null;
@@ -80,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // New State for Bonus Logic
   let bonusClaimed = {};
+  let lastAdResetDate = null; // Changed
 
   const TELEGRAM_BOT_TOKEN = '7812568979:AAGHvXfEufrcDBopGtGCPAmsFVIBWelFz3g';
   const ADMIN_TELEGRAM_ID = '5932597801';
@@ -154,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
-    totalAdsWatched.textContent = String(adsWatched);
+    totalAdsWatched.textContent = String(dailyAdsWatched); // Changed
 
     if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
@@ -224,6 +226,8 @@ document.addEventListener("DOMContentLoaded", () => {
         userName,
         points: totalPoints,
         adsWatched,
+        dailyAdsWatched, // Changed
+        lastAdResetDate: lastAdResetDate ? Timestamp.fromDate(lastAdResetDate) : null, // Changed
         adsCooldownEnds: adCooldownEnds ? Timestamp.fromDate(adCooldownEnds) : null,
         taskTimers: timersToSave,
         bonusClaimed, // Save the new bonus claimed state
@@ -245,6 +249,8 @@ document.addEventListener("DOMContentLoaded", () => {
         userName = data.userName || (telegramUser?.first_name || 'User');
         totalPoints = data.points || 0;
         adsWatched = data.adsWatched || 0;
+        dailyAdsWatched = data.dailyAdsWatched || 0; // Changed
+        lastAdResetDate = data.lastAdResetDate ? toDate(data.lastAdResetDate) : null; // Changed
         taskTimers = data.taskTimers || {};
         bonusClaimed = data.bonusClaimed || {};
         if (data.adsCooldownEnds) {
@@ -256,6 +262,16 @@ document.addEventListener("DOMContentLoaded", () => {
         updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
+        
+        // --- Daily Ad Reset Logic --- (Changed)
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const resetDate = toDate(lastAdResetDate);
+        if (!resetDate || resetDate.getDate() !== now.getDate() || resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
+             dailyAdsWatched = 0;
+             lastAdResetDate = now;
+             console.log("Daily ad count reset.");
+        }
         
         // Check if user has a referrer and if the bonus has not been processed yet
         if (referrerCode && !data.hasReferrer) {
@@ -285,6 +301,8 @@ document.addEventListener("DOMContentLoaded", () => {
           userName,
           points: 0,
           adsWatched: 0,
+          dailyAdsWatched: 0, // Changed
+          lastAdResetDate: serverNow(), // Changed
           adsCooldownEnds: null,
           taskTimers: {},
           referralCode: newReferralCode,
@@ -299,6 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         totalPoints = 0;
         referralCodeInput.value = newReferralCode;
+        dailyAdsWatched = 0; // Changed
       }
       
       // Update UI after loading/setting data
@@ -319,6 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
         adTimerSpan.textContent = 'Ready!';
         saveUserDataToFirebase();
       }
+      
+      saveUserDataToFirebase(); // Changed
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -690,6 +711,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await window.show_9673543().then(() => {
           adsWatched++;
+          dailyAdsWatched++; // Changed
           totalPoints += pointsPerAd;
           updateAdsCounter();
           updatePointsDisplay();
@@ -705,6 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
           await window.show_9673543('pop').then(() => {
             adsWatched++;
+            dailyAdsWatched++; // Changed
             totalPoints += pointsPerAd;
             updateAdsCounter();
             updatePointsDisplay();
