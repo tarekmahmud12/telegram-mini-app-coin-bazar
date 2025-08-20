@@ -403,6 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const bonusPoints = Number(btn.dataset.bonusPoints);
 
       if (bonusClaimed[bonusName]) {
+        // User has already claimed, just open the link
         window.open(channelLink, '_blank');
         return;
       }
@@ -414,54 +415,37 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Open the link for the user to join
-      const newWindow = window.open(channelLink, '_blank');
+      window.open(channelLink, '_blank');
       
       // Set a claiming flag and disable the button
       btn.dataset.claiming = 'true';
       btn.disabled = true;
-      const originalText = btn.textContent;
-      btn.textContent = `Checking in 15s...`;
 
-      setTimeout(async () => {
-        // Here we simulate the claim. In a real-world scenario, 
-        // a bot would check the user's membership. This is a common
-        // approach for Telegram Mini Apps due to API limitations.
-        
-        try {
-          // Attempt to close the window opened earlier
-          if (newWindow && !newWindow.closed) {
-             newWindow.close();
-          }
-        } catch(e) {
-            console.error("Could not close window, likely due to cross-origin policy:", e);
-        }
-
+      try {
         // Award the points and update the user's bonusClaimed state in Firebase
-        try {
-          const userDocRef = usersDocRef();
-          await updateDoc(userDocRef, {
-            points: increment(bonusPoints),
-            [`bonusClaimed.${bonusName}`]: true
-          });
-          
-          totalPoints += bonusPoints;
-          updatePointsDisplay();
-          bonusClaimed[bonusName] = true;
-          
-          alert(`You've successfully claimed your bonus of ${bonusPoints} points!`);
-          
-        } catch(error) {
-          console.error("Error claiming bonus:", error);
-          alert("Failed to claim bonus. Please try again.");
-        } finally {
-          // Reset button state regardless of success or failure
-          btn.dataset.claiming = 'false';
-          btn.textContent = 'Join Now';
-          btn.disabled = false;
-          await saveUserDataToFirebase();
-          updateBonusButtons(); // Re-render the button state
-        }
-      }, 15000); // 15 seconds
+        const userDocRef = usersDocRef();
+        await updateDoc(userDocRef, {
+          points: increment(bonusPoints),
+          [`bonusClaimed.${bonusName}`]: true
+        });
+        
+        totalPoints += bonusPoints;
+        updatePointsDisplay();
+        bonusClaimed[bonusName] = true;
+        
+        alert(`You've successfully claimed your bonus of ${bonusPoints} points!`);
+        
+      } catch(error) {
+        console.error("Error claiming bonus:", error);
+        alert("Failed to claim bonus. Please try again.");
+      } finally {
+        // Reset button state regardless of success or failure
+        btn.dataset.claiming = 'false';
+        btn.textContent = 'Join Now';
+        btn.disabled = false;
+        await saveUserDataToFirebase();
+        updateBonusButtons(); // Re-render the button state
+      }
     });
   });
 
