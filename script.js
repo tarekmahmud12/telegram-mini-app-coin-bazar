@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
-  serverTimestamp, Timestamp, increment, FieldValue,
+  serverTimestamp, Timestamp, increment,
   collection, query, where, getDocs, orderBy
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {
@@ -44,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
   const profilePic = document.getElementById('profile-pic');
+  const joinBonusBtns = document.querySelectorAll('.join-btn');
 
   // Withdraw UI elements
   const withdrawForm = document.getElementById('withdraw-form');
@@ -72,16 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pointsPerAd = 5;
   const pointsPerTask = 10;
   const referrerPoints = 200;
-  const newUserPoints = 0;
-  const taskUrls = {
-    '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-    '5': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
-    '6': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
-  };
-  const taskCooldownInHours = 1;
   let taskTimers = {};
   let telegramId = null;
   let telegramUser = null;
@@ -285,7 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // If a referrer code exists, set hasReferrer to true
         if (referrerCode) {
             hasReferrer = true;
-            // The awardReferralPoints function is called below in the `setDoc` call
         }
 
         await setDoc(usersDocRef(), {
@@ -302,7 +292,8 @@ document.addEventListener("DOMContentLoaded", () => {
           referralCount: 0,
           referralPointsEarned: 0,
           totalWithdrawalsCount: 0,
-          totalPointsWithdrawn: 0
+          totalPointsWithdrawn: 0,
+          bonusClaimed: {} // New field to track bonus claims
         });
 
         totalPoints = 0;
@@ -315,6 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
       updatePointsDisplay();
       updateAdsCounter();
       updateTaskButtons();
+      updateBonusButtons();
 
       if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
         const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
@@ -376,6 +368,66 @@ document.addEventListener("DOMContentLoaded", () => {
         updateTaskButtons();
       }, 10000);
     });
+  });
+
+  // ======================= Bonus Buttons =======================
+  const bonusClaimed = {};
+  const updateBonusButtons = async () => {
+      const userDoc = await getDoc(usersDocRef());
+      if (userDoc.exists()) {
+          const data = userDoc.data();
+          Object.assign(bonusClaimed, data.bonusClaimed || {});
+      }
+      joinBonusBtns.forEach(btn => {
+          const bonusName = btn.dataset.bonusName;
+          if (bonusClaimed[bonusName]) {
+              btn.textContent = 'Join Now';
+          } else {
+              btn.textContent = `+${btn.dataset.bonusPoints} Points`;
+          }
+      });
+  };
+
+  joinBonusBtns.forEach(btn => {
+      btn.addEventListener('click', async () => {
+          const bonusName = btn.dataset.bonusName;
+          const channelLink = btn.dataset.channelLink;
+          const bonusPoints = Number(btn.dataset.bonusPoints);
+
+          if (bonusClaimed[bonusName]) {
+              // If already claimed, just open the link
+              window.open(channelLink, '_blank');
+              return;
+          }
+
+          // Open the link for the user to join
+          window.open(channelLink, '_blank');
+
+          // Disable the button and start the timer
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.textContent = `Checking in 15s...`;
+
+          setTimeout(async () => {
+              // 15 seconds passed, now check if user has joined (this is simulated)
+              // In a real-world scenario, you would need a bot to check channel membership.
+              // For this code, we'll assume they joined after 15 seconds.
+              
+              const userDocRef = usersDocRef();
+              await updateDoc(userDocRef, {
+                  points: increment(bonusPoints),
+                  [`bonusClaimed.${bonusName}`]: true
+              });
+              
+              bonusClaimed[bonusName] = true;
+              totalPoints += bonusPoints;
+              updatePointsDisplay();
+              btn.textContent = 'Join Now';
+              btn.disabled = false;
+              alert(`You've earned ${bonusPoints} points for joining!`);
+              
+          }, 15000); // 15 seconds
+      });
   });
 
   // ======================= Navigation =======================
