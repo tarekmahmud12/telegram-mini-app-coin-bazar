@@ -77,6 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let telegramId = null;
   let telegramUser = null;
   let referrerCode = null;
+  
+  // New State for Bonus Logic
+  let bonusClaimed = {};
 
   const TELEGRAM_BOT_TOKEN = '7812568979:AAGHvXfEufrcDBopGtGCPAmsFVIBWelFz3g';
   const ADMIN_TELEGRAM_ID = '5932597801';
@@ -160,7 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
       watchAdBtn.disabled = false;
       watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
     }
-
   };
   const updateReferralStats = (referralCount, pointsEarned) => {
     referralCountDisplay.textContent = referralCount;
@@ -224,6 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
         adsWatched,
         adsCooldownEnds: adCooldownEnds ? Timestamp.fromDate(adCooldownEnds) : null,
         taskTimers: timersToSave,
+        bonusClaimed, // Save the new bonus claimed state
         referralCode: referralCodeInput.value || generateReferralCode(),
         lastUpdated: serverNow(),
       }, { merge: true });
@@ -232,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
   
-  // ======================= UPDATED loadUserDataFromFirebase =======================
   const loadUserDataFromFirebase = async () => {
     if (!firebaseUID) return;
     try {
@@ -244,6 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
         totalPoints = data.points || 0;
         adsWatched = data.adsWatched || 0;
         taskTimers = data.taskTimers || {};
+        bonusClaimed = data.bonusClaimed || {};
         if (data.adsCooldownEnds) {
           adCooldownEnds = toDate(data.adsCooldownEnds);
         } else {
@@ -257,7 +260,6 @@ document.addEventListener("DOMContentLoaded", () => {
         // Check if user has a referrer and if the bonus has not been processed yet
         if (referrerCode && !data.hasReferrer) {
             await awardReferralPoints(referrerCode);
-            // After awarding points, update the new user's own document
             await updateDoc(usersDocRef(), {
                 hasReferrer: true,
                 lastUpdated: serverNow()
@@ -273,7 +275,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const newReferralCode = generateReferralCode();
         let hasReferrer = false;
 
-        // If a referrer code exists, set hasReferrer to true
         if (referrerCode) {
             hasReferrer = true;
         }
@@ -293,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
           referralPointsEarned: 0,
           totalWithdrawalsCount: 0,
           totalPointsWithdrawn: 0,
-          bonusClaimed: {} // New field to track bonus claims
+          bonusClaimed: {}
         });
 
         totalPoints = 0;
@@ -327,6 +328,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================= Tasks =======================
   const updateTaskButtons = () => {
     const now = Date.now();
+    const taskUrls = {
+      '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+      '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+      '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+      '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
+      '5': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
+      '6': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
+    };
+    const taskCooldownInHours = 1;
+
     taskButtons.forEach(button => {
       const taskId = button.dataset.taskId;
       let cooldownEndTime = null;
@@ -348,6 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   };
+  
   taskButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
@@ -362,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
         alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
         totalPoints += pointsPerTask;
         updatePointsDisplay();
-        const cooldownEnds = new Date(Date.now() + taskCooldownInHours * 60 * 60 * 1000);
+        const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
         taskTimers[taskId] = cooldownEnds;
         await saveUserDataToFirebase();
         updateTaskButtons();
@@ -371,63 +383,86 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Bonus Buttons =======================
-  const bonusClaimed = {};
-  const updateBonusButtons = async () => {
-      const userDoc = await getDoc(usersDocRef());
-      if (userDoc.exists()) {
-          const data = userDoc.data();
-          Object.assign(bonusClaimed, data.bonusClaimed || {});
+  const updateBonusButtons = () => {
+    joinBonusBtns.forEach(btn => {
+      const bonusName = btn.dataset.bonusName;
+      if (bonusClaimed[bonusName]) {
+        btn.textContent = 'Join Now';
+        btn.disabled = false;
+      } else {
+        btn.textContent = `+${btn.dataset.bonusPoints} Points`;
+        btn.disabled = false;
       }
-      joinBonusBtns.forEach(btn => {
-          const bonusName = btn.dataset.bonusName;
-          if (bonusClaimed[bonusName]) {
-              btn.textContent = 'Join Now';
-          } else {
-              btn.textContent = `+${btn.dataset.bonusPoints} Points`;
-          }
-      });
+    });
   };
 
   joinBonusBtns.forEach(btn => {
-      btn.addEventListener('click', async () => {
-          const bonusName = btn.dataset.bonusName;
-          const channelLink = btn.dataset.channelLink;
-          const bonusPoints = Number(btn.dataset.bonusPoints);
+    btn.addEventListener('click', async () => {
+      const bonusName = btn.dataset.bonusName;
+      const channelLink = btn.dataset.channelLink;
+      const bonusPoints = Number(btn.dataset.bonusPoints);
 
-          if (bonusClaimed[bonusName]) {
-              // If already claimed, just open the link
-              window.open(channelLink, '_blank');
-              return;
+      if (bonusClaimed[bonusName]) {
+        window.open(channelLink, '_blank');
+        return;
+      }
+
+      // Check for a pending claim for this button
+      if (btn.dataset.claiming === 'true') {
+        alert("Please wait for the current bonus to process.");
+        return;
+      }
+
+      // Open the link for the user to join
+      const newWindow = window.open(channelLink, '_blank');
+      
+      // Set a claiming flag and disable the button
+      btn.dataset.claiming = 'true';
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = `Checking in 15s...`;
+
+      setTimeout(async () => {
+        // Here we simulate the claim. In a real-world scenario, 
+        // a bot would check the user's membership. This is a common
+        // approach for Telegram Mini Apps due to API limitations.
+        
+        try {
+          // Attempt to close the window opened earlier
+          if (newWindow && !newWindow.closed) {
+             newWindow.close();
           }
+        } catch(e) {
+            console.error("Could not close window, likely due to cross-origin policy:", e);
+        }
 
-          // Open the link for the user to join
-          window.open(channelLink, '_blank');
-
-          // Disable the button and start the timer
-          btn.disabled = true;
-          const originalText = btn.textContent;
-          btn.textContent = `Checking in 15s...`;
-
-          setTimeout(async () => {
-              // 15 seconds passed, now check if user has joined (this is simulated)
-              // In a real-world scenario, you would need a bot to check channel membership.
-              // For this code, we'll assume they joined after 15 seconds.
-              
-              const userDocRef = usersDocRef();
-              await updateDoc(userDocRef, {
-                  points: increment(bonusPoints),
-                  [`bonusClaimed.${bonusName}`]: true
-              });
-              
-              bonusClaimed[bonusName] = true;
-              totalPoints += bonusPoints;
-              updatePointsDisplay();
-              btn.textContent = 'Join Now';
-              btn.disabled = false;
-              alert(`You've earned ${bonusPoints} points for joining!`);
-              
-          }, 15000); // 15 seconds
-      });
+        // Award the points and update the user's bonusClaimed state in Firebase
+        try {
+          const userDocRef = usersDocRef();
+          await updateDoc(userDocRef, {
+            points: increment(bonusPoints),
+            [`bonusClaimed.${bonusName}`]: true
+          });
+          
+          totalPoints += bonusPoints;
+          updatePointsDisplay();
+          bonusClaimed[bonusName] = true;
+          
+          alert(`You've successfully claimed your bonus of ${bonusPoints} points!`);
+          
+        } catch(error) {
+          console.error("Error claiming bonus:", error);
+          alert("Failed to claim bonus. Please try again.");
+        } finally {
+          // Reset button state regardless of success or failure
+          btn.dataset.claiming = 'false';
+          btn.textContent = 'Join Now';
+          btn.disabled = false;
+          await saveUserDataToFirebase();
+          updateBonusButtons(); // Re-render the button state
+        }
+      }, 15000); // 15 seconds
+    });
   });
 
   // ======================= Navigation =======================
@@ -471,7 +506,6 @@ document.addEventListener("DOMContentLoaded", () => {
       referralLinkInput.select();
       document.execCommand('copy');
     }
-
   });
 
   // ======================= Withdraw =======================
@@ -516,29 +550,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      // 1. Point minus from Firebase using manual update logic
-      const userDoc = await getDoc(usersDocRef());
-      if (!userDoc.exists()) {
-        alert('User data not found.');
-        return;
-      }
-      const userData = userDoc.data();
-      const newPoints = (userData.points || 0) - amount;
-      const newTotalWithdrawals = (userData.totalWithdrawalsCount || 0) + 1;
-      const newTotalPointsWithdrawn = (userData.totalPointsWithdrawn || 0) + amount;
-
-      await updateDoc(usersDocRef(), {
-        points: newPoints,
-        totalWithdrawalsCount: newTotalWithdrawals,
-        totalPointsWithdrawn: newTotalPointsWithdrawn
+      // 1. Point minus from Firebase
+      const userDocRef = usersDocRef();
+      await updateDoc(userDocRef, {
+        points: increment(-amount),
+        totalWithdrawalsCount: increment(1),
+        totalPointsWithdrawn: increment(amount)
       });
 
       // Update local state
-      totalPoints = newPoints;
+      totalPoints -= amount;
       updatePointsDisplay();
-      totalWithdrawalsCount.textContent = newTotalWithdrawals;
-      totalPointsWithdrawn.textContent = newTotalPointsWithdrawn;
-
+      
       // 2. Save withdrawal request to Firestore
       const withdrawalDoc = doc(withdrawalsCollectionRef());
       await setDoc(withdrawalDoc, {
