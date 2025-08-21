@@ -61,6 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareBtn = document.querySelector('.share-btn');
   const referralCountDisplay = document.getElementById('referral-count');
   const referralPointsEarnedDisplay = document.getElementById('referral-points-earned');
+  
+  // Copy buttons
+  const copyButtons = document.querySelectorAll('.copy-btn');
+
 
   // ---------- State ----------
   let adsWatched = 0;
@@ -499,13 +503,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Copy & Share =======================
-  document.querySelectorAll('.copy-btn').forEach(btn => {
+  copyButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       const input = e.target.previousElementSibling;
       input.select();
       input.setSelectionRange(0, 99999);
       document.execCommand('copy');
-      alert('Copied to clipboard!');
+      alert('Link copied to clipboard! You can now share it with friends to earn points.');
     });
   });
 
