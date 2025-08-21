@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let adCooldownEnds = null;
   let totalPoints = 0;
   let userName = 'User';
-  const pointsPerAd = 10;
+  const pointsPerAd = 5;
   const pointsPerTask = 10;
   const referrerPoints = 200;
   let taskTimers = {};
@@ -322,6 +322,15 @@ document.addEventListener("DOMContentLoaded", () => {
         totalPoints = 0;
         referralCodeInput.value = newReferralCode;
         dailyAdsWatched = 0;
+        
+        // Award referral points if this is a referred user
+        if (referrerCode) {
+            await awardReferralPoints(referrerCode);
+            await updateDoc(usersDocRef(), {
+                hasReferrer: true,
+                lastUpdated: serverNow()
+            });
+        }
       }
       
       // Update UI after loading/setting data
