@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const welcomeUserNameDisplay = document.getElementById('welcome-user-name');
   const editNameBtn = document.getElementById('edit-name-btn');
   const adsLeftValue = document.getElementById('ads-left-value');
-  const totalAdsWatched = document.getElementById('total-ads-watched'); // Changed
+  const totalAdsWatched = document.getElementById('total-ads-watched');
   const welcomeAdsLeft = document.getElementById('welcome-ads-left');
   const watchAdBtn = document.querySelector('.watch-ad-btn');
   const taskButtons = document.querySelectorAll('.task-btn');
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- State ----------
   let adsWatched = 0;
-  let dailyAdsWatched = 0; // Changed
+  let dailyAdsWatched = 0;
   const maxAdsPerCycle = 10;
   const adResetTimeInMinutes = 15;
   let adTimerInterval = null;
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // New State for Bonus Logic
   let bonusClaimed = {};
-  let lastAdResetDate = null; // Changed
+  let lastAdResetDate = null;
 
   const TELEGRAM_BOT_TOKEN = '7812568979:AAGHvXfEufrcDBopGtGCPAmsFVIBWelFz3g';
   const ADMIN_TELEGRAM_ID = '5932597801';
@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
     adsLeftValue.textContent = String(adsLeft);
     welcomeAdsLeft.textContent = String(adsLeft);
-    totalAdsWatched.textContent = String(dailyAdsWatched); // Changed
+    totalAdsWatched.textContent = String(dailyAdsWatched);
 
     if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
       watchAdBtn.disabled = true;
@@ -226,11 +226,11 @@ document.addEventListener("DOMContentLoaded", () => {
         userName,
         points: totalPoints,
         adsWatched,
-        dailyAdsWatched, // Changed
-        lastAdResetDate: lastAdResetDate ? Timestamp.fromDate(lastAdResetDate) : null, // Changed
+        dailyAdsWatched,
+        lastAdResetDate: lastAdResetDate ? Timestamp.fromDate(lastAdResetDate) : null,
         adsCooldownEnds: adCooldownEnds ? Timestamp.fromDate(adCooldownEnds) : null,
         taskTimers: timersToSave,
-        bonusClaimed, // Save the new bonus claimed state
+        bonusClaimed,
         referralCode: referralCodeInput.value || generateReferralCode(),
         lastUpdated: serverNow(),
       }, { merge: true });
@@ -249,8 +249,8 @@ document.addEventListener("DOMContentLoaded", () => {
         userName = data.userName || (telegramUser?.first_name || 'User');
         totalPoints = data.points || 0;
         adsWatched = data.adsWatched || 0;
-        dailyAdsWatched = data.dailyAdsWatched || 0; // Changed
-        lastAdResetDate = data.lastAdResetDate ? toDate(data.lastAdResetDate) : null; // Changed
+        dailyAdsWatched = data.dailyAdsWatched || 0;
+        lastAdResetDate = data.lastAdResetDate ? toDate(data.lastAdResetDate) : null;
         taskTimers = data.taskTimers || {};
         bonusClaimed = data.bonusClaimed || {};
         if (data.adsCooldownEnds) {
@@ -263,7 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
         
-        // --- Daily Ad Reset Logic --- (Changed)
+        // --- Daily Ad Reset Logic ---
         const now = new Date();
         const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         const resetDate = toDate(lastAdResetDate);
@@ -301,8 +301,8 @@ document.addEventListener("DOMContentLoaded", () => {
           userName,
           points: 0,
           adsWatched: 0,
-          dailyAdsWatched: 0, // Changed
-          lastAdResetDate: serverNow(), // Changed
+          dailyAdsWatched: 0,
+          lastAdResetDate: serverNow(),
           adsCooldownEnds: null,
           taskTimers: {},
           referralCode: newReferralCode,
@@ -317,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         totalPoints = 0;
         referralCodeInput.value = newReferralCode;
-        dailyAdsWatched = 0; // Changed
+        dailyAdsWatched = 0;
       }
       
       // Update UI after loading/setting data
@@ -339,7 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
         saveUserDataToFirebase();
       }
       
-      saveUserDataToFirebase(); // Changed
+      saveUserDataToFirebase();
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -349,14 +349,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================= Tasks =======================
   const updateTaskButtons = () => {
     const now = Date.now();
-    const taskUrls = {
-      '1': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-      '2': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-      '3': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-      '4': 'https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3',
-      '5': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
-      '6': 'https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a',
-    };
     const taskCooldownInHours = 1;
 
     taskButtons.forEach(button => {
@@ -384,22 +376,47 @@ document.addEventListener("DOMContentLoaded", () => {
   taskButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
-      const taskUrl = taskUrls[taskId];
-      button.textContent = 'Please wait 10 seconds...';
+      const taskUrl = button.dataset.taskUrl;
+      const taskCooldownInSeconds = 15; // 15 seconds timer
+      
+      if (button.disabled) return;
+
+      button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
+
       const newWindow = window.open(taskUrl, '_blank');
-      setTimeout(async () => {
-        try {
+      
+      const timerStart = Date.now();
+      const timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
+        button.textContent = `Please wait ${remaining} seconds...`;
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
           if (newWindow) newWindow.close();
-        } catch {}
-        alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
-        totalPoints += pointsPerTask;
-        updatePointsDisplay();
-        const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
-        taskTimers[taskId] = cooldownEnds;
-        await saveUserDataToFirebase();
-        updateTaskButtons();
-      }, 10000);
+          // User stayed for the required time, award points
+          alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+          totalPoints += pointsPerTask;
+          updatePointsDisplay();
+          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1-hour cooldown
+          taskTimers[taskId] = cooldownEnds;
+          saveUserDataToFirebase();
+          updateTaskButtons();
+        }
+      }, 1000);
+
+      // Check if user closes the window or comes back before the timer is up
+      const checkBack = () => {
+        if (Date.now() - timerStart < taskCooldownInSeconds * 1000) {
+          clearInterval(timerInterval);
+          alert("Task failed! You must stay on the page for at least 15 seconds to earn points.");
+          button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+          button.disabled = false;
+        }
+        window.removeEventListener('focus', checkBack);
+      };
+      
+      window.addEventListener('focus', checkBack);
     });
   });
 
@@ -711,7 +728,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await window.show_9673543().then(() => {
           adsWatched++;
-          dailyAdsWatched++; // Changed
+          dailyAdsWatched++;
           totalPoints += pointsPerAd;
           updateAdsCounter();
           updatePointsDisplay();
@@ -727,7 +744,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
           await window.show_9673543('pop').then(() => {
             adsWatched++;
-            dailyAdsWatched++; // Changed
+            dailyAdsWatched++;
             totalPoints += pointsPerAd;
             updateAdsCounter();
             updatePointsDisplay();
