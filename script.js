@@ -114,13 +114,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   } catch (e) {
     console.error("Telegram init error:", e);
-      telegramId = 'fallback-test-user-id';
-      telegramUser = {
-        id: telegramId,
-        first_name: 'Fallback',
-        last_name: 'User',
-        username: 'fallback_user'
-      };
+    telegramId = 'fallback-test-user-id';
+    telegramUser = {
+      id: telegramId,
+      first_name: 'Fallback',
+      last_name: 'User',
+      username: 'fallback_user'
+    };
   }
 
   // ======================= Firebase Auth (Anonymous) =======================
@@ -759,95 +759,50 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 15-second timer logic for ad watching
-    const adStayRequirementInSeconds = 15;
-    let timerInterval = null;
-    
-    const startAdTimer = () => {
-      let timeLeft = adStayRequirementInSeconds;
-      const timerPopup = document.createElement('div');
-      timerPopup.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        z-index: 1000;
-        text-align: center;
-      `;
-      timerPopup.innerHTML = `<h3>Stay on the ad page for ${timeLeft} seconds to earn points</h3>`;
-      document.body.appendChild(timerPopup);
-
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        timerPopup.innerHTML = `<h3>Stay on the ad page for ${timeLeft} seconds to earn points</h3>`;
-        
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          document.body.removeChild(timerPopup);
-          awardAdPoints();
-        }
-      }, 1000);
-
-      // Check if user returns early
-      const checkBack = () => {
-        if (timeLeft > 0) {
-          clearInterval(timerInterval);
-          document.body.removeChild(timerPopup);
-          alert("Ad watching failed! You must stay on the ad page for at least 15 seconds to earn points.");
-          window.removeEventListener('focus', checkBack);
-        }
-      };
-      
-      window.addEventListener('focus', checkBack);
-      setTimeout(() => window.removeEventListener('focus', checkBack), adStayRequirementInSeconds * 1000);
-    };
-
-    const awardAdPoints = async () => {
-      if (typeof window.show_9673543 === 'function') {
-        try {
-          await window.show_9673543().then(() => {
-            completeAdWatching();
-          }).catch(async (e) => {
-            console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
-            await window.show_9673543('pop').then(() => {
-              completeAdWatching();
-            }).catch(e => {
-              console.error('Rewarded Popup also failed:', e);
-              alert('There was an error loading the ad. Please try again.');
-            });
+    if (typeof window.show_9673543 === 'function') {
+      try {
+        await window.show_9673543().then(() => {
+          adsWatched++;
+          dailyAdsWatched++;
+          totalPoints += pointsPerAd;
+          updateAdsCounter();
+          updatePointsDisplay();
+          if (adsWatched >= maxAdsPerCycle) {
+            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+            startAdTimer();
+            alert('You have watched all ads for this cycle. The timer has started!');
+          } else {
+            alert(`You earned ${pointsPerAd} points!`);
+          }
+          saveUserDataToFirebase();
+        }).catch(async (e) => {
+          console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
+          await window.show_9673543('pop').then(() => {
+            adsWatched++;
+            dailyAdsWatched++;
+            totalPoints += pointsPerAd;
+            updateAdsCounter();
+            updatePointsDisplay();
+            if (adsWatched >= maxAdsPerCycle) {
+              adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+              startAdTimer();
+              alert('You have watched all ads for this cycle. The timer has started!');
+            } else {
+              alert(`You earned ${pointsPerAd} points!`);
+            }
+            saveUserDataToFirebase();
+          }).catch(e => {
+            console.error('Rewarded Popup also failed:', e);
+            alert('There was an error loading the ad. Please try again.');
           });
-        } catch (e) {
-          console.error('Ad function call failed:', e);
-          alert('Ad script not loaded. Please try again.');
-        }
-      } else {
+        });
+      } catch (e) {
+        console.error('Ad function call failed:', e);
         alert('Ad script not loaded. Please try again.');
       }
-    };
-
-    const completeAdWatching = () => {
-      adsWatched++;
-      dailyAdsWatched++;
-      totalPoints += pointsPerAd;
-      updateAdsCounter();
-      updatePointsDisplay();
-      
-      if (adsWatched >= maxAdsPerCycle) {
-        adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-        startAdTimer();
-        alert('You have watched all ads for this cycle. The timer has started!');
-      } else {
-        alert(`You earned ${pointsPerAd} points!`);
-      }
-      saveUserDataToFirebase();
-    };
-
-    // Start the ad watching process with timer
-    startAdTimer();
+    } else {
+      alert('Ad script not loaded. Please try again.');
+    }
   });
 
   // ======================= Init (UI defaults) =======================
