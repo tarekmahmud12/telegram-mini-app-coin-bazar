@@ -568,6 +568,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const paymentMethod = paymentMethodSelect.value;
     const amount = Number(amountInput.value || 0);
     const accountId = document.getElementById('account-id').value.trim();
+    let minAmount = 0;
 
     if (!paymentMethod || amount <= 0 || !accountId) {
       alert('Please fill out all fields correctly.');
@@ -577,6 +578,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (totalPoints < amount) {
       alert(`Not enough points. You only have ${totalPoints} points.`);
       return;
+    }
+    
+    // --- Added withdrawal limit checks ---
+    if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
+        minAmount = 10000;
+        if (amount < minAmount) {
+            alert(`For Mobile Banking, the minimum withdrawal amount is ${minAmount} points.`);
+            return;
+        }
+    } else if (paymentMethod === 'grameenphone' || paymentMethod === 'robi' || paymentMethod === 'jio' || paymentMethod === 'airtel' || paymentMethod === 'banglalink' || paymentMethod === 'teletalk') {
+        minAmount = 2000;
+        if (amount < minAmount) {
+            alert(`For Mobile Recharge, the minimum withdrawal amount is ${minAmount} points.`);
+            return;
+        }
+    } else if (paymentMethod === 'binance' || paymentMethod === 'webmoney') {
+        minAmount = 100000;
+        if (amount < minAmount) {
+            alert(`For International Banking, the minimum withdrawal amount is ${minAmount} points.`);
+            return;
+        }
     }
 
     if (!firebaseUID) {
