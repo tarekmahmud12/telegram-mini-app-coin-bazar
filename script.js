@@ -761,75 +761,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (typeof window.show_9673543 === 'function') {
       try {
-        const timerStart = Date.now();
-        const requiredTime = 15000; // 15 seconds in milliseconds
-        let adShown = false;
-        
-        // Use a promise to handle the ad show logic and timer
-        const adPromise = new Promise((resolve, reject) => {
-          // Attempt to show the rewarded interstitial ad first
-          window.show_9673543().then(() => {
-            adShown = true;
-            resolve(true);
-          }).catch(() => {
-            // If interstitial fails, try the rewarded popup
-            window.show_9673543('pop').then(() => {
-              adShown = true;
-              resolve(true);
-            }).catch(reject); // If both fail, reject the promise
+        await window.show_9673543().then(() => {
+          adsWatched++;
+          dailyAdsWatched++;
+          totalPoints += pointsPerAd;
+          updateAdsCounter();
+          updatePointsDisplay();
+          if (adsWatched >= maxAdsPerCycle) {
+            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+            startAdTimer();
+            alert('You have watched all ads for this cycle. The timer has started!');
+          } else {
+            alert(`You earned ${pointsPerAd} points!`);
+          }
+          saveUserDataToFirebase();
+        }).catch(async (e) => {
+          console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
+          await window.show_9673543('pop').then(() => {
+            adsWatched++;
+            dailyAdsWatched++;
+            totalPoints += pointsPerAd;
+            updateAdsCounter();
+            updatePointsDisplay();
+            if (adsWatched >= maxAdsPerCycle) {
+              adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+              startAdTimer();
+              alert('You have watched all ads for this cycle. The timer has started!');
+            } else {
+              alert(`You earned ${pointsPerAd} points!`);
+            }
+            saveUserDataToFirebase();
+          }).catch(e => {
+            console.error('Rewarded Popup also failed:', e);
+            alert('There was an error loading the ad. Please try again.');
           });
         });
-
-        // Disable the button and show a waiting message
-        watchAdBtn.disabled = true;
-        watchAdBtn.textContent = 'Ad is loading...';
-
-        adPromise.then(() => {
-          // Ad was successfully shown (or at least one variant was triggered)
-          const checkBack = () => {
-            const timeElapsed = Date.now() - timerStart;
-            if (timeElapsed >= requiredTime) {
-              // User stayed for the required time, award points
-              adsWatched++;
-              dailyAdsWatched++;
-              totalPoints += pointsPerAd;
-              updateAdsCounter();
-              updatePointsDisplay();
-              if (adsWatched >= maxAdsPerCycle) {
-                adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-                startAdTimer();
-                alert('You have watched all ads for this cycle. The timer has started!');
-              } else {
-                alert(`You earned ${pointsPerAd} points!`);
-              }
-              saveUserDataToFirebase();
-            } else {
-              // User came back too early, do not award points
-              alert(`You must stay on the ad page for at least 15 seconds to earn points. Please try again.`);
-            }
-            // Re-enable the button and remove the event listener
-            watchAdBtn.disabled = false;
-            watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
-            window.removeEventListener('focus', checkBack);
-          };
-          window.addEventListener('focus', checkBack);
-        }).catch(e => {
-          // Ad failed to load
-          console.error('Ad failed:', e);
-          alert('There was an error loading the ad. Please try again.');
-          watchAdBtn.disabled = false;
-          watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
-        });
-
       } catch (e) {
         console.error('Ad function call failed:', e);
         alert('Ad script not loaded. Please try again.');
-        watchAdBtn.disabled = false;
-        watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
       }
     } else {
       alert('Ad script not loaded. Please try again.');
-      watchAdBtn.disabled = false;
     }
   });
 
