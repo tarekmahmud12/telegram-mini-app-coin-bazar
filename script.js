@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let adsWatched = 0;
   let dailyAdsWatched = 0;
   const maxAdsPerCycle = 10;
-  const adResetTimeInMinutes = 15;
+  const adResetTimeInMinutes = 30;
   let adTimerInterval = null;
   let adCooldownEnds = null;
   let totalPoints = 0;
@@ -390,7 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 15; // 15 seconds timer
+      const taskCooldownInSeconds = 20; // 20 seconds timer
       
       if (button.disabled) return;
 
