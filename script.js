@@ -390,7 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 20; // 20 seconds timer
+      const taskCooldownInSeconds = 30; // 30 seconds timer
       
       if (button.disabled) return;
 
