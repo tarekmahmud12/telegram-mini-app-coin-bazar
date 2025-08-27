@@ -387,55 +387,62 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   
   taskButtons.forEach(button => {
-    let timerInterval = null;
-    let newWindow = null;
-
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 20;
+      const taskCooldownInSeconds = 20; // 20 seconds timer
       
       if (button.disabled) return;
-      if (timerInterval) clearInterval(timerInterval);
 
       button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
 
-      newWindow = window.open(taskUrl, '_blank');
+      const newWindow = window.open(taskUrl, '_blank');
       
       const timerStart = Date.now();
+      let timerInterval = null;
+      let userEarnedPoints = false;
+
+      const checkTaskCompletion = () => {
+        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        if (elapsed >= taskCooldownInSeconds) {
+          userEarnedPoints = true;
+        }
+      };
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          checkTaskCompletion();
+          if (userEarnedPoints) {
+            // User returned after 20 seconds, award points
+            alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+            totalPoints += pointsPerTask;
+            updatePointsDisplay();
+            const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1-hour cooldown
+            taskTimers[taskId] = cooldownEnds;
+            saveUserDataToFirebase();
+            updateTaskButtons();
+          } else {
+            // User returned before 20 seconds, alert and reset
+            alert("সতর্কবার্তা: আপনি ২০ সেকেন্ড অপেক্ষা করেননি। টাস্কটি আবার সম্পূর্ণ করুন।");
+            button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+            button.disabled = false;
+          }
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Update button text with remaining time while the user is away
       timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - timerStart) / 1000);
         const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
         button.textContent = `Please wait ${remaining} seconds...`;
         if (remaining <= 0) {
           clearInterval(timerInterval);
-          if (newWindow) newWindow.close();
-          
-          alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
-          totalPoints += pointsPerTask;
-          updatePointsDisplay();
-          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
-          taskTimers[taskId] = cooldownEnds;
-          saveUserDataToFirebase();
-          updateTaskButtons();
-          window.removeEventListener('focus', checkBack);
         }
       }, 1000);
-
-      const checkBack = () => {
-        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
-        if (elapsed < taskCooldownInSeconds) {
-          clearInterval(timerInterval);
-          if (newWindow) newWindow.close();
-          alert("Task failed! You must stay on the page for at least 20 seconds to earn points.");
-          button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
-          button.disabled = false;
-        }
-        window.removeEventListener('focus', checkBack);
-      };
-      
-      window.addEventListener('focus', checkBack);
     });
   });
 
