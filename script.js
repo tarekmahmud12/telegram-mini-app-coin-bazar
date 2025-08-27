@@ -401,20 +401,17 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const timerStart = Date.now();
       let timerInterval = null;
-      let userEarnedPoints = false;
+      let claimed = false;
 
-      const checkTaskCompletion = () => {
+      // Start timer on button to show progress
+      timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - timerStart) / 1000);
-        if (elapsed >= taskCooldownInSeconds) {
-          userEarnedPoints = true;
-        }
-      };
-
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          checkTaskCompletion();
-          if (userEarnedPoints) {
-            // User returned after 20 seconds, award points
+        const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
+        
+        if (remaining <= 0 && !claimed) {
+            clearInterval(timerInterval);
+            claimed = true;
+            // Award points and set cooldown
             alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
             totalPoints += pointsPerTask;
             updatePointsDisplay();
@@ -422,27 +419,28 @@ document.addEventListener("DOMContentLoaded", () => {
             taskTimers[taskId] = cooldownEnds;
             saveUserDataToFirebase();
             updateTaskButtons();
-          } else {
-            // User returned before 20 seconds, alert and reset
-            alert("সতর্কবার্তা: আপনি ২০ সেকেন্ড অপেক্ষা করেননি। টাস্কটি আবার সম্পূর্ণ করুন।");
-            button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
-            button.disabled = false;
-          }
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
-        }
-      };
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Update button text with remaining time while the user is away
-      timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
-        const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
-        button.textContent = `Please wait ${remaining} seconds...`;
-        if (remaining <= 0) {
-          clearInterval(timerInterval);
+            
+            // Close the opened window if it's still open
+            if (newWindow && !newWindow.closed) {
+                newWindow.close();
+            }
+        } else if (!claimed) {
+            button.textContent = `Please wait ${remaining} seconds...`;
         }
       }, 1000);
+
+      // Check if user returns early
+      const checkReturn = () => {
+        if (!claimed) {
+          clearInterval(timerInterval);
+          alert("সতর্কবার্তা: টাস্কটি সম্পূর্ণ করতে আপনাকে অবশ্যই ২০ সেকেন্ড অপেক্ষা করতে হবে।");
+          button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+          button.disabled = false;
+        }
+        window.removeEventListener('focus', checkReturn);
+      };
+      
+      window.addEventListener('focus', checkReturn);
     });
   });
 
