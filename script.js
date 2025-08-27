@@ -762,35 +762,72 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof window.show_9673543 === 'function') {
       try {
         await window.show_9673543().then(() => {
-          adsWatched++;
-          dailyAdsWatched++;
-          totalPoints += pointsPerAd;
-          updateAdsCounter();
-          updatePointsDisplay();
-          if (adsWatched >= maxAdsPerCycle) {
-            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-            startAdTimer();
-            alert('You have watched all ads for this cycle. The timer has started!');
-          } else {
-            alert(`You earned ${pointsPerAd} points!`);
-          }
-          saveUserDataToFirebase();
+          // Add a timer after the ad shows successfully
+          const adWatchTime = 0; // 0 seconds required to get points
+          watchAdBtn.disabled = true;
+          watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points (Wait ${adWatchTime}s)`;
+
+          let timer = adWatchTime;
+          const adTimer = setInterval(() => {
+            timer--;
+            watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points (Wait ${timer}s)`;
+
+            if (timer <= 0) {
+              clearInterval(adTimer);
+              watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+              watchAdBtn.disabled = false;
+
+              // Award points after timer is finished
+              adsWatched++;
+              dailyAdsWatched++;
+              totalPoints += pointsPerAd;
+              updateAdsCounter();
+              updatePointsDisplay();
+              if (adsWatched >= maxAdsPerCycle) {
+                adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                startAdTimer();
+                alert('You have watched all ads for this cycle. The timer has started!');
+              } else {
+                alert(`You earned ${pointsPerAd} points!`);
+              }
+              saveUserDataToFirebase();
+            }
+          }, 1000);
+
         }).catch(async (e) => {
           console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
           await window.show_9673543('pop').then(() => {
-            adsWatched++;
-            dailyAdsWatched++;
-            totalPoints += pointsPerAd;
-            updateAdsCounter();
-            updatePointsDisplay();
-            if (adsWatched >= maxAdsPerCycle) {
-              adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-              startAdTimer();
-              alert('You have watched all ads for this cycle. The timer has started!');
-            } else {
-              alert(`You earned ${pointsPerAd} points!`);
-            }
-            saveUserDataToFirebase();
+            // Add a timer for the popup ad
+            const adWatchTime = 15;
+            watchAdBtn.disabled = true;
+            watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points (Wait ${adWatchTime}s)`;
+
+            let timer = adWatchTime;
+            const adTimer = setInterval(() => {
+              timer--;
+              watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points (Wait ${timer}s)`;
+
+              if (timer <= 0) {
+                clearInterval(adTimer);
+                watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+                watchAdBtn.disabled = false;
+                
+                // Award points after popup timer
+                adsWatched++;
+                dailyAdsWatched++;
+                totalPoints += pointsPerAd;
+                updateAdsCounter();
+                updatePointsDisplay();
+                if (adsWatched >= maxAdsPerCycle) {
+                  adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                  startAdTimer();
+                  alert('You have watched all ads for this cycle. The timer has started!');
+                } else {
+                  alert(`You earned ${pointsPerAd} points!`);
+                }
+                saveUserDataToFirebase();
+              }
+            }, 1000);
           }).catch(e => {
             console.error('Rewarded Popup also failed:', e);
             alert('There was an error loading the ad. Please try again.');
