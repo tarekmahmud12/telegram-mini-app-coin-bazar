@@ -390,10 +390,10 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 20; // 20 seconds timer
+      const taskCooldownInSeconds = 20;
       
       if (button.disabled) return;
-
+      
       button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
 
@@ -401,46 +401,51 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const timerStart = Date.now();
       let timerInterval = null;
-      let claimed = false;
-
-      // Start timer on button to show progress
-      timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
-        const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
-        
-        if (remaining <= 0 && !claimed) {
-            clearInterval(timerInterval);
-            claimed = true;
-            // Award points and set cooldown
-            alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
-            totalPoints += pointsPerTask;
-            updatePointsDisplay();
-            const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1-hour cooldown
-            taskTimers[taskId] = cooldownEnds;
-            saveUserDataToFirebase();
-            updateTaskButtons();
-            
-            // Close the opened window if it's still open
-            if (newWindow && !newWindow.closed) {
-                newWindow.close();
-            }
-        } else if (!claimed) {
-            button.textContent = `Please wait ${remaining} seconds...`;
-        }
-      }, 1000);
-
-      // Check if user returns early
-      const checkReturn = () => {
-        if (!claimed) {
-          clearInterval(timerInterval);
-          alert("সতর্কবার্তা: টাস্কটি সম্পূর্ণ করতে আপনাকে অবশ্যই ২০ সেকেন্ড অপেক্ষা করতে হবে।");
-          button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
-          button.disabled = false;
-        }
-        window.removeEventListener('focus', checkReturn);
-      };
+      let earnedPoints = false;
       
-      window.addEventListener('focus', checkReturn);
+      // Set a timeout to award points after 20 seconds
+      const pointAwardTimeout = setTimeout(() => {
+          if (!earnedPoints) {
+              earnedPoints = true;
+              alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+              totalPoints += pointsPerTask;
+              updatePointsDisplay();
+              const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
+              taskTimers[taskId] = cooldownEnds;
+              saveUserDataToFirebase();
+              updateTaskButtons();
+              if (newWindow && !newWindow.closed) {
+                  newWindow.close();
+              }
+          }
+      }, taskCooldownInSeconds * 1000);
+
+      // Check for early return using visibilitychange event
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          if (!earnedPoints) {
+            clearTimeout(pointAwardTimeout);
+            alert("সতর্কবার্তা: টাস্কটি সম্পূর্ণ করতে আপনাকে অবশ্যই ২০ সেকেন্ড অপেক্ষা করতে হবে।");
+            button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+            button.disabled = false;
+          }
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Update button text with remaining time
+      let remainingTime = taskCooldownInSeconds;
+      timerInterval = setInterval(() => {
+          remainingTime--;
+          if (remainingTime > 0) {
+              button.textContent = `Please wait ${remainingTime} seconds...`;
+          } else {
+              clearInterval(timerInterval);
+              button.textContent = "Point Claimed!";
+          }
+      }, 1000);
     });
   });
 
