@@ -387,42 +387,48 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   
   taskButtons.forEach(button => {
+    let timerInterval = null;
+    let newWindow = null;
+
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 20; // 20 seconds timer
+      const taskCooldownInSeconds = 20;
       
       if (button.disabled) return;
+      if (timerInterval) clearInterval(timerInterval);
 
       button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
 
-      const newWindow = window.open(taskUrl, '_blank');
+      newWindow = window.open(taskUrl, '_blank');
       
       const timerStart = Date.now();
-      const timerInterval = setInterval(() => {
+      timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - timerStart) / 1000);
         const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
         button.textContent = `Please wait ${remaining} seconds...`;
         if (remaining <= 0) {
           clearInterval(timerInterval);
           if (newWindow) newWindow.close();
-          // User stayed for the required time, award points
+          
           alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
           totalPoints += pointsPerTask;
           updatePointsDisplay();
-          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1-hour cooldown
+          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
           taskTimers[taskId] = cooldownEnds;
           saveUserDataToFirebase();
           updateTaskButtons();
+          window.removeEventListener('focus', checkBack);
         }
       }, 1000);
 
-      // Check if user closes the window or comes back before the timer is up
       const checkBack = () => {
-        if (Date.now() - timerStart < taskCooldownInSeconds * 1000) {
+        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        if (elapsed < taskCooldownInSeconds) {
           clearInterval(timerInterval);
-          alert("Task failed! You must stay on the page for at least 15 seconds to earn points.");
+          if (newWindow) newWindow.close();
+          alert("Task failed! You must stay on the page for at least 20 seconds to earn points.");
           button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
           button.disabled = false;
         }
