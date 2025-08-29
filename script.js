@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let adCooldownEnds = null;
   let totalPoints = 0;
   let userName = 'User';
-  const pointsPerAd = 5;
+  const pointsPerAd = 10;
   const pointsPerTask = 5;
   const referrerPoints = 200;
   let taskTimers = {};
@@ -390,62 +390,46 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 20;
+      const taskCooldownInSeconds = 20; // 20 seconds timer
       
       if (button.disabled) return;
-      
+
       button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
 
       const newWindow = window.open(taskUrl, '_blank');
       
       const timerStart = Date.now();
-      let timerInterval = null;
-      let earnedPoints = false;
-      
-      // Set a timeout to award points after 20 seconds
-      const pointAwardTimeout = setTimeout(() => {
-          if (!earnedPoints) {
-              earnedPoints = true;
-              alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
-              totalPoints += pointsPerTask;
-              updatePointsDisplay();
-              const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
-              taskTimers[taskId] = cooldownEnds;
-              saveUserDataToFirebase();
-              updateTaskButtons();
-              if (newWindow && !newWindow.closed) {
-                  newWindow.close();
-              }
-          }
-      }, taskCooldownInSeconds * 1000);
-
-      // Check for early return using visibilitychange event
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          if (!earnedPoints) {
-            clearTimeout(pointAwardTimeout);
-            alert("সতর্কবার্তা: টাস্কটি সম্পূর্ণ করতে আপনাকে অবশ্যই ২০ সেকেন্ড অপেক্ষা করতে হবে।");
-            button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
-            button.disabled = false;
-          }
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
+      const timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
+        button.textContent = `Please wait ${remaining} seconds...`;
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          if (newWindow) newWindow.close();
+          // User stayed for the required time, award points
+          alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
+          totalPoints += pointsPerTask;
+          updatePointsDisplay();
+          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1-hour cooldown
+          taskTimers[taskId] = cooldownEnds;
+          saveUserDataToFirebase();
+          updateTaskButtons();
         }
-      };
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      // Update button text with remaining time
-      let remainingTime = taskCooldownInSeconds;
-      timerInterval = setInterval(() => {
-          remainingTime--;
-          if (remainingTime > 0) {
-              button.textContent = `Please wait ${remainingTime} seconds...`;
-          } else {
-              clearInterval(timerInterval);
-              button.textContent = "Point Claimed!";
-          }
       }, 1000);
+
+      // Check if user closes the window or comes back before the timer is up
+      const checkBack = () => {
+        if (Date.now() - timerStart < taskCooldownInSeconds * 1000) {
+          clearInterval(timerInterval);
+          alert("Task failed! You must stay on the page for at least 15 seconds to earn points.");
+          button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
+          button.disabled = false;
+        }
+        window.removeEventListener('focus', checkBack);
+      };
+      
+      window.addEventListener('focus', checkBack);
     });
   });
 
