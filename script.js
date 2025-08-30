@@ -11,7 +11,7 @@ import {
 
 // ==== আপনার আসল Firebase কনফিগ এখানে বসান ====
 const firebaseConfig = {
-  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc", 
+  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc",
   authDomain: "coin-bazar-f3093.firebaseapp.com",
   projectId: "coin-bazar-f3093",
   storageBucket: "coin-bazar-f3093.firebasestorage.app",
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareBtn = document.querySelector('.share-btn');
   const referralCountDisplay = document.getElementById('referral-count');
   const referralPointsEarnedDisplay = document.getElementById('referral-points-earned');
-  
+
   // Copy buttons
   const copyButtons = document.querySelectorAll('.copy-btn');
 
@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let telegramUser = null;
   let referrerCode = null;
   let firebaseUID = null;
-  
+
   // New State for Bonus Logic
   let bonusClaimed = {};
   let lastAdResetDate = null;
@@ -94,35 +94,41 @@ document.addEventListener("DOMContentLoaded", () => {
   try {
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-      telegramId = String(telegramUser.id);
+      if (telegramUser?.id) {
+        telegramId = String(telegramUser.id);
+        if (telegramUser?.first_name) {
+          userName = telegramUser.first_name;
+          if (telegramUser?.last_name) {
+            userName += ` ${telegramUser.last_name}`;
+          }
+        }
+        if (telegramUser?.photo_url) {
+          profilePic.src = telegramUser.photo_url;
+        }
+      } else {
+        console.warn("Telegram user ID not found. Using fallback ID.");
+        telegramId = 'fallback-test-user-id';
+        userName = 'Fallback User';
+      }
       referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
       if (referrerCode) {
         console.log("Referrer code found:", referrerCode);
       }
-      if (telegramUser?.photo_url) {
-        profilePic.src = telegramUser.photo_url;
-      }
     } else {
-      console.warn("Telegram user not found. Using fallback ID.");
+      console.warn("Telegram WebApp not found. Using fallback ID.");
       telegramId = 'fallback-test-user-id';
-      telegramUser = {
-        id: telegramId,
-        first_name: 'Fallback',
-        last_name: 'User',
-        username: 'fallback_user'
-      };
+      userName = 'Fallback User';
     }
   } catch (e) {
     console.error("Telegram init error:", e);
     telegramId = 'fallback-test-user-id';
-    telegramUser = {
-      id: telegramId,
-      first_name: 'Fallback',
-      last_name: 'User',
-      username: 'fallback_user'
-    };
+    userName = 'Fallback User';
   }
-  
+
+  // Initial UI update with fallback names
+  userNameDisplay.textContent = userName;
+  welcomeUserNameDisplay.textContent = userName;
+
   signInAnonymously(auth).catch(err => {
     console.error("Anonymous sign-in failed:", err);
   });
@@ -135,7 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Firestore Helpers =======================
-  // Document reference based on telegramId
   const usersDocRef = (id) => doc(db, "users", id);
   const withdrawalsCollectionRef = () => collection(db, "withdrawals");
   const serverNow = () => serverTimestamp();
@@ -260,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (snapFirebase.exists()) {
           const data = snapFirebase.data();
           console.log("Old user detected. Migrating data to Telegram ID.");
-          
+
           // Migrate old data to the new structure
           const oldData = snapFirebase.data();
           const newData = { ...oldData, telegramId, lastUpdated: serverNow() };
@@ -268,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Now delete the old document to avoid duplicates
           await deleteDoc(userDocFirebase);
-          
+
           // Use the migrated data
           await populateUserData(newData, userDocTelegram);
 
@@ -300,10 +305,10 @@ document.addEventListener("DOMContentLoaded", () => {
             totalPointsWithdrawn: 0,
             bonusClaimed: {}
           };
-          
+
           await setDoc(userDocTelegram, initialData);
           await populateUserData(initialData, userDocTelegram);
-          
+
           if (referrerCode) {
             await awardReferralPoints(referrerCode);
             await updateDoc(userDocTelegram, {
@@ -335,7 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
     totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
     totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
-    
+
     // Daily Ad Reset Logic
     const now = new Date();
     const resetDate = toDate(lastAdResetDate);
@@ -345,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
          console.log("Daily ad count reset.");
          await updateDoc(userDocRef, { dailyAdsWatched: 0, lastAdResetDate: now });
     }
-    
+
     // Update UI after loading/setting data
     userNameDisplay.textContent = userName;
     welcomeUserNameDisplay.textContent = userName;
@@ -365,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
       adTimerSpan.textContent = 'Ready!';
       await saveUserDataToFirebase();
     }
-    
+
     await saveUserDataToFirebase();
   };
 
@@ -403,12 +408,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const taskCooldownInSeconds = 20;
 
       if (button.disabled) return;
-      
+
       button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
 
       const newWindow = window.open(taskUrl, '_blank');
-      
+
       const pointAwardTimeout = setTimeout(() => {
           alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
           totalPoints += pointsPerTask;
@@ -479,7 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       window.open(channelLink, '_blank');
-      
+
       btn.dataset.claiming = 'true';
       btn.disabled = true;
 
@@ -492,13 +497,13 @@ document.addEventListener("DOMContentLoaded", () => {
           points: increment(bonusPoints),
           [`bonusClaimed.${bonusName}`]: true
         });
-        
+
         totalPoints += bonusPoints;
         updatePointsDisplay();
         bonusClaimed[bonusName] = true;
-        
+
         alert(`You've successfully claimed your bonus of ${bonusPoints} points!`);
-        
+
       } catch(error) {
         console.error("Error claiming bonus:", error);
         alert("Failed to claim bonus. Please try again.");
@@ -589,7 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(`Not enough points. You only have ${totalPoints} points.`);
       return;
     }
-    
+
     // --- Added withdrawal limit checks ---
     if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
         minAmount = 10000;
@@ -631,7 +636,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update local state
       totalPoints -= amount;
       updatePointsDisplay();
-      
+
       // 2. Save withdrawal request to Firestore
       const withdrawalDoc = doc(withdrawalsCollectionRef());
       await setDoc(withdrawalDoc, {
@@ -818,9 +823,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Init (UI defaults) =======================
-  // Load data after all functions are defined
-  userNameDisplay.textContent = userName;
-  welcomeUserNameDisplay.textContent = userName;
   updatePointsDisplay();
   updateAdsCounter();
   updateTaskButtons();
