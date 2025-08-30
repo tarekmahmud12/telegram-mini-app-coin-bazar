@@ -359,8 +359,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Update UI after loading/setting data
-    userNameDisplay.textContent = userName;
-    welcomeUserNameDisplay.textContent = userName;
     updatePointsDisplay();
     updateAdsCounter();
     updateTaskButtons();
@@ -571,11 +569,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (method === 'bkash' || method === 'nagad') {
       withdrawMessageSpan.textContent = 'Minimum 10,000 points are required for Mobile Banking withdrawal.';
       amountInput.placeholder = "Enter amount (min 10000)";
-      amountInput.value = '';
     } else if (method === 'grameenphone' || method === 'robi' || method === 'jio' || method === 'airtel' || method === 'banglalink' || method === 'teletalk') {
       withdrawMessageSpan.textContent = 'Minimum 2,000 points are required for Mobile Recharge.';
       amountInput.placeholder = "Enter amount (min 2000)";
-      amountInput.value = '';
     } else if (method === 'binance' || method === 'webmoney') {
       withdrawMessageSpan.textContent = 'Minimum 100,000 points are required for International Banking withdrawal.';
       amountInput.placeholder = "Enter amount (min 100000)";
