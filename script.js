@@ -96,12 +96,11 @@ document.addEventListener("DOMContentLoaded", () => {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
       if (telegramUser?.id) {
         telegramId = String(telegramUser.id);
-        if (telegramUser?.first_name) {
-          userName = telegramUser.first_name;
-          if (telegramUser?.last_name) {
-            userName += ` ${telegramUser.last_name}`;
-          }
+        let fullName = telegramUser.first_name || '';
+        if (telegramUser.last_name) {
+          fullName += ` ${telegramUser.last_name}`;
         }
+        userName = fullName || 'User'; // Use full name or default to 'User'
         if (telegramUser?.photo_url) {
           profilePic.src = telegramUser.photo_url;
         }
@@ -125,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
     userName = 'Fallback User';
   }
 
-  // Initial UI update with fallback names
+  // Initial UI update with fallback or telegram names
   userNameDisplay.textContent = userName;
   welcomeUserNameDisplay.textContent = userName;
 
@@ -324,7 +323,15 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const populateUserData = async (data, userDocRef) => {
-    userName = data.userName || (telegramUser?.first_name || 'User');
+    // Check if the userName exists in the database. If not, use the one from Telegram.
+    if (!data.userName && telegramUser?.first_name) {
+      let newName = telegramUser.first_name;
+      if (telegramUser.last_name) newName += ` ${telegramUser.last_name}`;
+      userName = newName;
+    } else {
+      userName = data.userName || (telegramUser?.first_name || 'User');
+    }
+
     totalPoints = data.points || 0;
     adsWatched = data.adsWatched || 0;
     dailyAdsWatched = data.dailyAdsWatched || 0;
@@ -368,7 +375,7 @@ document.addEventListener("DOMContentLoaded", () => {
       adCooldownEnds = null;
       updateAdsCounter();
       adTimerSpan.textContent = 'Ready!';
-      await saveUserDataToFirebase();
+      saveUserDataToFirebase();
     }
 
     await saveUserDataToFirebase();
