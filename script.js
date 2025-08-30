@@ -267,7 +267,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Migrate old data to the new structure
           const oldData = snapFirebase.data();
-          const newData = { ...oldData, telegramId, lastUpdated: serverNow() };
+          const newReferralCode = oldData.referralCode || generateReferralCode();
+          const newData = { ...oldData, telegramId, referralCode: newReferralCode, lastUpdated: serverNow() };
           await setDoc(userDocTelegram, newData, { merge: true });
 
           // Now delete the old document to avoid duplicates
@@ -295,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
             lastAdResetDate: serverNow(),
             adsCooldownEnds: null,
             taskTimers: {},
-            referralCode: newReferralCode,
+            referralCode: newReferralCode, // নতুন রেফারেল কোড এখানে যোগ করা হলো
             lastUpdated: serverNow(),
             hasReferrer: hasReferrer,
             referralCount: 0,
@@ -343,7 +344,16 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       adCooldownEnds = null;
     }
-    referralCodeInput.value = data.referralCode || generateReferralCode();
+
+    // এখানে একটি অতিরিক্ত চেক যুক্ত করা হয়েছে
+    if (!data.referralCode) {
+        const newCode = generateReferralCode();
+        referralCodeInput.value = newCode;
+        await updateDoc(userDocRef, { referralCode: newCode });
+    } else {
+        referralCodeInput.value = data.referralCode;
+    }
+
     updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
     totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
     totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
@@ -376,7 +386,8 @@ document.addEventListener("DOMContentLoaded", () => {
       saveUserDataToFirebase();
     }
 
-    await saveUserDataToFirebase();
+    // A final save will be handled by the ad timer and other functions.
+    // The initial `setDoc` or `updateDoc` already handles the first save.
   };
 
   // ======================= Tasks =======================
