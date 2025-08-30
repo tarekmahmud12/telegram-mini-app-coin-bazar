@@ -3,18 +3,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebas
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc,
   serverTimestamp, Timestamp, increment,
-  collection, query, where, getDocs, orderBy, deleteDoc
+  collection, query, where, getDocs, orderBy
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 // ==== আপনার আসল Firebase কনফিগ এখানে বসান ====
+// Firebase console > Project settings > Your apps থেকে এই তথ্যগুলো পাবেন
 const firebaseConfig = {
-  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc",
+  apiKey: "AIzaSyDZkV0aOLY-Yiyh5s_Nq_GSz8aiIPoSohc", // <-- আপনার আসল কী বসান
   authDomain: "coin-bazar-f3093.firebaseapp.com",
   projectId: "coin-bazar-f3093",
-  storageBucket: "coin-bazar-f3093.firebasestorage.app",
+  storageBucket: "coin-bazar-f3093.firebasestorage.app", // <-- সঠিক Storage Bucket
   messagingSenderId: "551875632672",
   appId: "1:551875632672:web:55bdd11d4654bc4984a645",
   measurementId: "G-776LFTSXTP"
@@ -60,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareBtn = document.querySelector('.share-btn');
   const referralCountDisplay = document.getElementById('referral-count');
   const referralPointsEarnedDisplay = document.getElementById('referral-points-earned');
-
+  
   // Copy buttons
   const copyButtons = document.querySelectorAll('.copy-btn');
 
@@ -81,8 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let telegramId = null;
   let telegramUser = null;
   let referrerCode = null;
-  let firebaseUID = null;
-
+  
   // New State for Bonus Logic
   let bonusClaimed = {};
   let lastAdResetDate = null;
@@ -90,44 +90,41 @@ document.addEventListener("DOMContentLoaded", () => {
   const TELEGRAM_BOT_TOKEN = '7812568979:AAGHvXfEufrcDBopGtGCPAmsFVIBWelFz3g';
   const ADMIN_TELEGRAM_ID = '5932597801';
 
-  // ======================= Telegram Init & Firebase Auth =======================
+  // ======================= Telegram Init =======================
   try {
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
       telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-      if (telegramUser?.id) {
-        telegramId = String(telegramUser.id);
-        let fullName = telegramUser.first_name || '';
-        if (telegramUser.last_name) {
-          fullName += ` ${telegramUser.last_name}`;
-        }
-        userName = fullName || 'User'; // Use full name or default to 'User'
-        if (telegramUser?.photo_url) {
-          profilePic.src = telegramUser.photo_url;
-        }
-      } else {
-        console.warn("Telegram user ID not found. Using fallback ID.");
-        telegramId = 'fallback-test-user-id';
-        userName = 'Fallback User';
-      }
+      telegramId = String(telegramUser.id);
       referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
       if (referrerCode) {
         console.log("Referrer code found:", referrerCode);
       }
+      if (telegramUser?.photo_url) {
+        profilePic.src = telegramUser.photo_url;
+      }
     } else {
-      console.warn("Telegram WebApp not found. Using fallback ID.");
+      console.warn("Telegram user not found. Using fallback ID.");
       telegramId = 'fallback-test-user-id';
-      userName = 'Fallback User';
+      telegramUser = {
+        id: telegramId,
+        first_name: 'Fallback',
+        last_name: 'User',
+        username: 'fallback_user'
+      };
     }
   } catch (e) {
     console.error("Telegram init error:", e);
     telegramId = 'fallback-test-user-id';
-    userName = 'Fallback User';
+    telegramUser = {
+      id: telegramId,
+      first_name: 'Fallback',
+      last_name: 'User',
+      username: 'fallback_user'
+    };
   }
 
-  // Initial UI update with fallback or telegram names
-  userNameDisplay.textContent = userName;
-  welcomeUserNameDisplay.textContent = userName;
-
+  // ======================= Firebase Auth (Anonymous) =======================
+  let firebaseUID = null;
   signInAnonymously(auth).catch(err => {
     console.error("Anonymous sign-in failed:", err);
   });
@@ -140,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Firestore Helpers =======================
-  const usersDocRef = (id) => doc(db, "users", id);
+  const usersDocRef = () => doc(db, "users", firebaseUID || "temp");
   const withdrawalsCollectionRef = () => collection(db, "withdrawals");
   const serverNow = () => serverTimestamp();
   const toDate = (maybeTs) => {
@@ -220,14 +217,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Firestore Save/Load =======================
   const saveUserDataToFirebase = async () => {
-    if (!telegramId) return;
+    if (!firebaseUID) return;
     try {
       const timersToSave = {};
       Object.keys(taskTimers || {}).forEach(k => {
         const d = toDate(taskTimers[k]);
         if (d) timersToSave[k] = Timestamp.fromDate(d);
       });
-      await setDoc(usersDocRef(telegramId), {
+      await setDoc(usersDocRef(), {
+        firebaseUID,
         telegramId,
         userName,
         points: totalPoints,
@@ -244,150 +242,121 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error saving data:", error);
     }
   };
-
+  
   const loadUserDataFromFirebase = async () => {
-    if (!telegramId || !firebaseUID) return;
-
+    if (!firebaseUID) return;
     try {
-      // 1. First, try to load data using the telegramId (New users)
-      const userDocTelegram = usersDocRef(telegramId);
-      const snapTelegram = await getDoc(userDocTelegram);
+      const snap = await getDoc(usersDocRef());
 
-      if (snapTelegram.exists()) {
-        const data = snapTelegram.data();
-        await populateUserData(data, userDocTelegram);
-      } else {
-        // 2. If no data found with telegramId, check with firebaseUID (Old users)
-        const userDocFirebase = usersDocRef(firebaseUID);
-        const snapFirebase = await getDoc(userDocFirebase);
-
-        if (snapFirebase.exists()) {
-          const data = snapFirebase.data();
-          console.log("Old user detected. Migrating data to Telegram ID.");
-
-          // Migrate old data to the new structure
-          const oldData = snapFirebase.data();
-          const newReferralCode = oldData.referralCode || generateReferralCode();
-          const newData = { ...oldData, telegramId, referralCode: newReferralCode, lastUpdated: serverNow() };
-          await setDoc(userDocTelegram, newData, { merge: true });
-
-          // Now delete the old document to avoid duplicates
-          await deleteDoc(userDocFirebase);
-
-          // Use the migrated data
-          await populateUserData(newData, userDocTelegram);
-
+      if (snap.exists()) {
+        const data = snap.data();
+        userName = data.userName || (telegramUser?.first_name || 'User');
+        totalPoints = data.points || 0;
+        adsWatched = data.adsWatched || 0;
+        dailyAdsWatched = data.dailyAdsWatched || 0;
+        lastAdResetDate = data.lastAdResetDate ? toDate(data.lastAdResetDate) : null;
+        taskTimers = data.taskTimers || {};
+        bonusClaimed = data.bonusClaimed || {};
+        if (data.adsCooldownEnds) {
+          adCooldownEnds = toDate(data.adsCooldownEnds);
         } else {
-          // 3. No data found at all. This is a brand new user.
-          console.log("Brand new user. Creating new document.");
-          let newName = telegramUser?.first_name || 'User';
-          if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
-          userName = newName;
-          const newReferralCode = generateReferralCode();
-          const hasReferrer = !!referrerCode;
-
-          const initialData = {
-            firebaseUID, // Keep firebaseUID for old withdrawal history lookup
-            telegramId,
-            userName,
-            points: 0,
-            adsWatched: 0,
-            dailyAdsWatched: 0,
-            lastAdResetDate: serverNow(),
-            adsCooldownEnds: null,
-            taskTimers: {},
-            referralCode: newReferralCode, // নতুন রেফারেল কোড এখানে যোগ করা হলো
-            lastUpdated: serverNow(),
-            hasReferrer: hasReferrer,
-            referralCount: 0,
-            referralPointsEarned: 0,
-            totalWithdrawalsCount: 0,
-            totalPointsWithdrawn: 0,
-            bonusClaimed: {}
-          };
-
-          await setDoc(userDocTelegram, initialData);
-          await populateUserData(initialData, userDocTelegram);
-
-          if (referrerCode) {
+          adCooldownEnds = null;
+        }
+        referralCodeInput.value = data.referralCode || generateReferralCode();
+        updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
+        totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
+        totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
+        
+        // --- Daily Ad Reset Logic ---
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const resetDate = toDate(lastAdResetDate);
+        if (!resetDate || resetDate.getDate() !== now.getDate() || resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
+             dailyAdsWatched = 0;
+             lastAdResetDate = now;
+             console.log("Daily ad count reset.");
+        }
+        
+        // Check if user has a referrer and if the bonus has not been processed yet
+        if (referrerCode && !data.hasReferrer) {
             await awardReferralPoints(referrerCode);
-            await updateDoc(userDocTelegram, {
+            await updateDoc(usersDocRef(), {
                 hasReferrer: true,
                 lastUpdated: serverNow()
             });
-          }
+            console.log("Referral bonus processed for new user.");
+        }
+        
+      } else {
+        // New user logic
+        let newName = telegramUser?.first_name || 'User';
+        if (telegramUser?.last_name) newName += ` ${telegramUser.last_name}`;
+        userName = newName;
+        const newReferralCode = generateReferralCode();
+        let hasReferrer = false;
+
+        if (referrerCode) {
+            hasReferrer = true;
+        }
+
+        await setDoc(usersDocRef(), {
+          firebaseUID,
+          telegramId,
+          userName,
+          points: 0,
+          adsWatched: 0,
+          dailyAdsWatched: 0,
+          lastAdResetDate: serverNow(),
+          adsCooldownEnds: null,
+          taskTimers: {},
+          referralCode: newReferralCode,
+          lastUpdated: serverNow(),
+          hasReferrer: hasReferrer,
+          referralCount: 0,
+          referralPointsEarned: 0,
+          totalWithdrawalsCount: 0,
+          totalPointsWithdrawn: 0,
+          bonusClaimed: {}
+        });
+
+        totalPoints = 0;
+        referralCodeInput.value = newReferralCode;
+        dailyAdsWatched = 0;
+        
+        // Award referral points if this is a referred user
+        if (referrerCode) {
+            await awardReferralPoints(referrerCode);
+            await updateDoc(usersDocRef(), {
+                hasReferrer: true,
+                lastUpdated: serverNow()
+            });
         }
       }
-    } catch (error) {
-      console.error("Error loading or migrating data:", error);
-    }
-  };
-
-  const populateUserData = async (data, userDocRef) => {
-    // Check if the userName exists in the database. If not, use the one from Telegram.
-    if (!data.userName && telegramUser?.first_name) {
-      let newName = telegramUser.first_name;
-      if (telegramUser.last_name) newName += ` ${telegramUser.last_name}`;
-      userName = newName;
-    } else {
-      userName = data.userName || (telegramUser?.first_name || 'User');
-    }
-
-    totalPoints = data.points || 0;
-    adsWatched = data.adsWatched || 0;
-    dailyAdsWatched = data.dailyAdsWatched || 0;
-    lastAdResetDate = data.lastAdResetDate ? toDate(data.lastAdResetDate) : null;
-    taskTimers = data.taskTimers || {};
-    bonusClaimed = data.bonusClaimed || {};
-    if (data.adsCooldownEnds) {
-      adCooldownEnds = toDate(data.adsCooldownEnds);
-    } else {
-      adCooldownEnds = null;
-    }
-
-    // এখানে একটি অতিরিক্ত চেক যুক্ত করা হয়েছে
-    if (!data.referralCode) {
-        const newCode = generateReferralCode();
-        referralCodeInput.value = newCode;
-        await updateDoc(userDocRef, { referralCode: newCode });
-    } else {
-        referralCodeInput.value = data.referralCode;
-    }
-
-    updateReferralStats(data.referralCount || 0, data.referralPointsEarned || 0);
-    totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
-    totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
-
-    // Daily Ad Reset Logic
-    const now = new Date();
-    const resetDate = toDate(lastAdResetDate);
-    if (!resetDate || resetDate.getDate() !== now.getDate() || resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
-         dailyAdsWatched = 0;
-         lastAdResetDate = now;
-         console.log("Daily ad count reset.");
-         await updateDoc(userDocRef, { dailyAdsWatched: 0, lastAdResetDate: now });
-    }
-
-    // Update UI after loading/setting data
-    updatePointsDisplay();
-    updateAdsCounter();
-    updateTaskButtons();
-    updateBonusButtons();
-    updateReferralLinkInput();
-
-    if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
-      const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
-      startAdTimer(secondsLeft);
-    } else {
-      adsWatched = 0;
-      adCooldownEnds = null;
+      
+      // Update UI after loading/setting data
+      userNameDisplay.textContent = userName;
+      welcomeUserNameDisplay.textContent = userName;
+      updatePointsDisplay();
       updateAdsCounter();
-      adTimerSpan.textContent = 'Ready!';
-      saveUserDataToFirebase();
-    }
+      updateTaskButtons();
+      updateBonusButtons();
 
-    // A final save will be handled by the ad timer and other functions.
-    // The initial `setDoc` or `updateDoc` already handles the first save.
+      if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
+        const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
+        startAdTimer(secondsLeft);
+      } else {
+        adsWatched = 0;
+        adCooldownEnds = null;
+        updateAdsCounter();
+        adTimerSpan.textContent = 'Ready!';
+        saveUserDataToFirebase();
+      }
+      
+      saveUserDataToFirebase();
+
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
   };
 
   // ======================= Tasks =======================
@@ -416,55 +385,51 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   };
-
+  
   taskButtons.forEach(button => {
     button.addEventListener('click', async () => {
       const taskId = button.dataset.taskId;
       const taskUrl = button.dataset.taskUrl;
-      const taskCooldownInSeconds = 20;
-
+      const taskCooldownInSeconds = 20; // 20 seconds timer
+      
       if (button.disabled) return;
 
       button.textContent = `Please wait ${taskCooldownInSeconds} seconds...`;
       button.disabled = true;
 
       const newWindow = window.open(taskUrl, '_blank');
-
-      const pointAwardTimeout = setTimeout(() => {
+      
+      const timerStart = Date.now();
+      const timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+        const remaining = Math.max(0, taskCooldownInSeconds - elapsed);
+        button.textContent = `Please wait ${remaining} seconds...`;
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          if (newWindow) newWindow.close();
+          // User stayed for the required time, award points
           alert(`Task ${taskId} completed! You earned ${pointsPerTask} points.`);
           totalPoints += pointsPerTask;
           updatePointsDisplay();
-          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000);
+          const cooldownEnds = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1-hour cooldown
           taskTimers[taskId] = cooldownEnds;
           saveUserDataToFirebase();
           updateTaskButtons();
-          if (newWindow && !newWindow.closed) {
-              newWindow.close();
-          }
-      }, taskCooldownInSeconds * 1000);
+        }
+      }, 1000);
 
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          clearTimeout(pointAwardTimeout);
-          alert("সতর্কবার্তা: টাস্কটি সম্পূর্ণ করতে আপনাকে অবশ্যই ২০ সেকেন্ড অপেক্ষা করতে হবে।");
+      // Check if user closes the window or comes back before the timer is up
+      const checkBack = () => {
+        if (Date.now() - timerStart < taskCooldownInSeconds * 1000) {
+          clearInterval(timerInterval);
+          alert("Task failed! You must stay on the page for at least 15 seconds to earn points.");
           button.textContent = `Task ${taskId}: +${pointsPerTask} Points`;
           button.disabled = false;
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
         }
+        window.removeEventListener('focus', checkBack);
       };
-
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      let remainingTime = taskCooldownInSeconds;
-      const timerInterval = setInterval(() => {
-          remainingTime--;
-          if (remainingTime > 0) {
-              button.textContent = `Please wait ${remainingTime} seconds...`;
-          } else {
-              clearInterval(timerInterval);
-              button.textContent = "Point Claimed!";
-          }
-      }, 1000);
+      
+      window.addEventListener('focus', checkBack);
     });
   });
 
@@ -494,41 +459,43 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      // Check for a pending claim for this button
       if (btn.dataset.claiming === 'true') {
         alert("Please wait for the current bonus to process.");
         return;
       }
 
+      // Open the link for the user to join
       window.open(channelLink, '_blank');
-
+      
+      // Set a claiming flag and disable the button
       btn.dataset.claiming = 'true';
       btn.disabled = true;
 
       try {
-        const userDocRef = usersDocRef(telegramId);
-        if (!userDocRef) {
-          throw new Error("User document reference is not available.");
-        }
+        // Award the points and update the user's bonusClaimed state in Firebase
+        const userDocRef = usersDocRef();
         await updateDoc(userDocRef, {
           points: increment(bonusPoints),
           [`bonusClaimed.${bonusName}`]: true
         });
-
+        
         totalPoints += bonusPoints;
         updatePointsDisplay();
         bonusClaimed[bonusName] = true;
-
+        
         alert(`You've successfully claimed your bonus of ${bonusPoints} points!`);
-
+        
       } catch(error) {
         console.error("Error claiming bonus:", error);
         alert("Failed to claim bonus. Please try again.");
       } finally {
+        // Reset button state regardless of success or failure
         btn.dataset.claiming = 'false';
         btn.textContent = 'Join Now';
         btn.disabled = false;
         await saveUserDataToFirebase();
-        updateBonusButtons();
+        updateBonusButtons(); // Re-render the button state
       }
     });
   });
@@ -568,7 +535,9 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error('Error sharing:', error);
       });
     } else {
+      // Fallback for browsers that don't support Web Share API
       alert('Your browser does not support the Web Share API. Please copy the link manually.');
+      // Fallback to copy the link to clipboard
       referralLinkInput.select();
       document.execCommand('copy');
     }
@@ -580,9 +549,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (method === 'bkash' || method === 'nagad') {
       withdrawMessageSpan.textContent = 'Minimum 10,000 points are required for Mobile Banking withdrawal.';
       amountInput.placeholder = "Enter amount (min 10000)";
+      amountInput.value = '';
     } else if (method === 'grameenphone' || method === 'robi' || method === 'jio' || method === 'airtel' || method === 'banglalink' || method === 'teletalk') {
       withdrawMessageSpan.textContent = 'Minimum 2,000 points are required for Mobile Recharge.';
       amountInput.placeholder = "Enter amount (min 2000)";
+      amountInput.value = '';
     } else if (method === 'binance' || method === 'webmoney') {
       withdrawMessageSpan.textContent = 'Minimum 100,000 points are required for International Banking withdrawal.';
       amountInput.placeholder = "Enter amount (min 100000)";
@@ -608,7 +579,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(`Not enough points. You only have ${totalPoints} points.`);
       return;
     }
-
+    
     // --- Added withdrawal limit checks ---
     if (paymentMethod === 'bkash' || paymentMethod === 'nagad') {
         minAmount = 10000;
@@ -630,17 +601,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    if (!telegramId) {
+    if (!firebaseUID) {
       alert('Authentication error. Please refresh the page and try again.');
       return;
     }
 
     try {
       // 1. Point minus from Firebase
-      const userDocRef = usersDocRef(telegramId);
-      if (!userDocRef) {
-        throw new Error("User document reference is not available.");
-      }
+      const userDocRef = usersDocRef();
       await updateDoc(userDocRef, {
         points: increment(-amount),
         totalWithdrawalsCount: increment(1),
@@ -650,10 +618,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update local state
       totalPoints -= amount;
       updatePointsDisplay();
-
+      
       // 2. Save withdrawal request to Firestore
       const withdrawalDoc = doc(withdrawalsCollectionRef());
       await setDoc(withdrawalDoc, {
+        firebaseUID: firebaseUID,
         telegramId: telegramId,
         userName: userName,
         amount: amount,
@@ -675,7 +644,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ======================= Withdrawal History Display =======================
   const loadWithdrawalHistory = async () => {
-    if (!telegramId) {
+    if (!firebaseUID) {
       withdrawalHistoryList.innerHTML = '<li class="error-message">Authentication error. Please refresh the page.</li>';
       return;
     }
@@ -685,16 +654,16 @@ document.addEventListener("DOMContentLoaded", () => {
     totalPointsWithdrawn.textContent = '0';
 
     try {
-      const userDoc = usersDocRef(telegramId);
-      if (userDoc) {
-        const userData = (await getDoc(userDoc)).data();
-        totalWithdrawalsCount.textContent = userData?.totalWithdrawalsCount || 0;
-        totalPointsWithdrawn.textContent = userData?.totalPointsWithdrawn || 0;
+      const userDoc = await getDoc(usersDocRef());
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        totalWithdrawalsCount.textContent = userData.totalWithdrawalsCount || 0;
+        totalPointsWithdrawn.textContent = userData.totalPointsWithdrawn || 0;
       }
 
       const q = query(
         withdrawalsCollectionRef(),
-        where("telegramId", "==", telegramId),
+        where("firebaseUID", "==", firebaseUID),
         orderBy("timestamp", "desc")
       );
       const querySnapshot = await getDocs(q);
@@ -837,10 +806,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ======================= Init (UI defaults) =======================
+  userNameDisplay.textContent = userName;
+  welcomeUserNameDisplay.textContent = userName;
   updatePointsDisplay();
   updateAdsCounter();
-  updateTaskButtons();
-  updateBonusButtons();
   navItems.forEach(item => {
     const pageId = item.dataset.page + '-page';
     if (item.classList.contains('active')) switchPage(pageId);
