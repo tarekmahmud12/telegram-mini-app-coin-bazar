@@ -9,12 +9,12 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-  <script type="text/javascript">
-      document.addEventListener('DOMContentLoaded', () => {
-          const adexiumWidget = new AdexiumWidget({wid: '1b6359f2-c461-498c-915e-3dfbe0eaa3c1', adFormat: 'interstitial'});
-          // autoMode() has been removed as we are using a manual button click
-      });
-  </script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        const adexiumWidget = new AdexiumWidget({wid: '1b6359f2-c461-498c-915e-3dfbe0eaa3c1', adFormat: 'interstitial'});
+        adexiumWidget.autoMode();
+    });
+</script>
   <script src="//libtl.com/sdk.js" data-zone="9673543" data-sdk="show_9673543"></script>
 </head>
 <body>
