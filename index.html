@@ -8,6 +8,13 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+  <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+  <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', () => {
+          const adexiumWidget = new AdexiumWidget({wid: '1b6359f2-c461-498c-915e-3dfbe0eaa3c1', adFormat: 'interstitial'});
+          // autoMode() has been removed as we are using a manual button click
+      });
+  </script>
   <script src="//libtl.com/sdk.js" data-zone="9673543" data-sdk="show_9673543"></script>
 </head>
 <body>
@@ -16,7 +23,9 @@
       <div class="header-top">
         <i class="icon back-icon"></i>
         <h1 class="app-name">Coin Bazar</h1>
-        <i class="icon settings-icon">⚙️</i>
+        <i class="icon settings-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1.51-1V3a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51c.78.34 1.48.9 2 1.82l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15z"></path></svg>
+        </i>
       </div>
       <div class="profile-card">
         <div class="profile-info">
@@ -43,31 +52,6 @@
         </div>
       </div>
     </header>
-
-    <div class="ad-container">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : '023e584c64137b4c3286667bdfcfecfa',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/023e584c64137b4c3286667bdfcfecfa/invoke.js"></script>
-    </div>
-    <div class="ad-container">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : '023e584c64137b4c3286667bdfcfecfa',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/023e584c64137b4c3286667bdfcfecfa/invoke.js"></script>
-    </div>
 
     <main class="main-content">
       <section id="home-page" class="page active">
@@ -99,21 +83,9 @@
             <span id="ad-timer">00:00 remaining</span>
           </div>
           <button class="watch-ad-btn">Watch Ad & Earn</button>
+          <button id="watch-adexium-ad-btn" class="watch-ad-btn">Watch Ad (Adexium) & Earn 10 Points</button>
         </div>
       </section>
-
-      <div class="ad-container">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : '023e584c64137b4c3286667bdfcfecfa',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/023e584c64137b4c3286667bdfcfecfa/invoke.js"></script>
-      </div>
 
       <section id="tasks-page" class="page">
         <div class="tasks-card card">
@@ -260,38 +232,35 @@
       <script type="text/javascript" src="//www.highperformanceformat.com/023e584c64137b4c3286667bdfcfecfa/invoke.js"></script>
     </div>
 
-    <div class="ad-container">
-      <script type="text/javascript">
-        atOptions = {
-          'key' : '023e584c64137b4c3286667bdfcfecfa',
-          'format' : 'iframe',
-          'height' : 50,
-          'width' : 320,
-          'params' : {}
-        };
-      </script>
-      <script type="text/javascript" src="//www.highperformanceformat.com/023e584c64137b4c3286667bdfcfecfa/invoke.js"></script>
-    </div>
-
     <footer class="app-footer">
       <div class="nav-item active" data-page="home">
-        <i class="icon">🏠</i>
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </i>
         <span>Home</span>
       </div>
       <div class="nav-item" data-page="tasks">
-        <i class="icon">📋</i>
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clipboard"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+        </i>
         <span>Tasks</span>
       </div>
       <div class="nav-item" data-page="referral">
-        <i class="icon">👥</i>
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-users"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </i>
         <span>Refer</span>
       </div>
       <div class="nav-item" data-page="withdraw">
-        <i class="icon">💸</i>
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-dollar-sign"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </i>
         <span>Withdraw</span>
       </div>
       <div class="nav-item" data-page="bonus">
-        <i class="icon">🎁</i>
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-gift"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+        </i>
         <span>Bonus</span>
       </div>
     </footer>

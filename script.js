@@ -64,7 +64,9 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Copy buttons
   const copyButtons = document.querySelectorAll('.copy-btn');
-
+  
+  // New Adexium button element
+  const watchAdexiumAdBtn = document.getElementById('watch-adexium-ad-btn');
 
   // ---------- State ----------
   let adsWatched = 0;
@@ -75,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let adCooldownEnds = null;
   let totalPoints = 0;
   let userName = 'User';
-  const pointsPerAd = 5;
+  const pointsPerAd = 10;
   const pointsPerTask = 5;
   const referrerPoints = 200;
   let taskTimers = {};
@@ -752,7 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
   };
 
-  // ======================= Watch Ad =======================
+  // ======================= Watch Ad (libtl) =======================
   watchAdBtn.addEventListener('click', async () => {
     if (adsWatched >= maxAdsPerCycle) {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
@@ -802,6 +804,52 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
       alert('Ad script not loaded. Please try again.');
+    }
+  });
+
+  // ======================= Watch Ad (Adexium) =======================
+  watchAdexiumAdBtn.addEventListener('click', () => {
+    const adexium = window.adexiumWidget;
+
+    // Check if the Adexium SDK is loaded and the widget is available
+    if (adexium && typeof adexium.showAd === 'function') {
+      // Disable the button to prevent multiple clicks
+      watchAdexiumAdBtn.disabled = true;
+      watchAdexiumAdBtn.textContent = 'Ad Loading...';
+
+      // Show the Adexium interstitial ad
+      adexium.showAd({
+        adFormat: 'interstitial',
+        onAdFinished: () => {
+          // This callback is triggered when the ad is watched completely.
+          totalPoints += pointsPerAd;
+          updatePointsDisplay();
+          saveUserDataToFirebase();
+          alert(`You've successfully watched the ad and earned ${pointsPerAd} points!`);
+        },
+        onAdClosed: () => {
+          // This callback is triggered if the ad is closed prematurely.
+          alert('Ad was closed early. Points will not be awarded. Please watch the entire ad to earn points.');
+        },
+        onAdFailed: (error) => {
+          console.error("Adexium Ad Failed:", error);
+          alert('Ad failed to load. Please try again later.');
+        },
+        onAdReady: () => {
+          // Update the button text once the ad is ready to show
+          watchAdexiumAdBtn.textContent = 'Ad Ready!';
+        },
+        onAdEvent: (event) => {
+          console.log(`Adexium event: ${event.type}`);
+          // Re-enable the button after the ad lifecycle is complete
+          if (event.type === 'ad_closed' || event.type === 'ad_finished' || event.type === 'ad_failed') {
+            watchAdexiumAdBtn.disabled = false;
+            watchAdexiumAdBtn.textContent = `Watch Ad (Adexium) & Earn ${pointsPerAd} Points`;
+          }
+        }
+      });
+    } else {
+      alert('Adexium ad script not loaded. Please try again.');
     }
   });
 
