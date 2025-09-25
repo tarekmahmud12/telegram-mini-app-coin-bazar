@@ -852,7 +852,37 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('Adexium ad script not loaded. Please try again.');
     }
   });
+  ======================= Watch Ad Gigapub) =======================
+// Gigapub এর বিজ্ঞাপন চালানোর জন্য নতুন বাটন
+const watchGigapubAdBtn = document.getElementById('watchGigapubAdBtn');
 
+if (watchGigapubAdBtn) {
+  watchGigapubAdBtn.addEventListener('click', () => {
+    // বিজ্ঞাপনের সীমা এবং কুলডাউন চেক করুন
+    if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+      alert('You have reached your ad limit or cooldown period. Please try again later.');
+      return;
+    }
+
+    // Gigapub এর বিজ্ঞাপন চালু করুন
+    window.showGiga()
+      .then(() => {
+        // বিজ্ঞাপন সফলভাবে দেখলে ১০ পয়েন্ট পাবে
+        adsWatched++;
+        dailyAdsWatched++;
+        totalPoints += 10; // প্রতিটি বিজ্ঞাপনে ১০ পয়েন্ট যোগ করুন
+        updateAdsCounter();
+        updatePointsDisplay();
+        saveUserDataToFirebase();
+        alert('আপনি বিজ্ঞাপনটি সম্পূর্ণ দেখেছেন এবং ১০ পয়েন্ট অর্জন করেছেন!');
+      })
+      .catch(e => {
+        // বিজ্ঞাপন দেখতে ব্যর্থ হলে অথবা কেটে দিলে
+        console.error('Gigapub ad failed:', e);
+        alert('বিজ্ঞাপন লোড হতে ব্যর্থ হয়েছে অথবা আপনি এটি কেটে দিয়েছেন। কোনো পয়েন্ট যোগ করা হয়নি।');
+      });
+  });
+}
   // ======================= Init (UI defaults) =======================
   userNameDisplay.textContent = userName;
   welcomeUserNameDisplay.textContent = userName;
