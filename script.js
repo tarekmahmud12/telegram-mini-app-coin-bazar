@@ -852,7 +852,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('Adexium ad script not loaded. Please try again.');
     }
   });
-  ======================= Watch Ad Gigapub) =======================
+  //======================= Watch Ad Gigapub) =======================
 // Gigapub এর বিজ্ঞাপন চালানোর জন্য নতুন বাটন
 const watchGigapubAdBtn = document.getElementById('watchGigapubAdBtn');
 
