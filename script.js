@@ -71,6 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // New Gigapub button element
   const watchGigapubAdBtn = document.getElementById('watchGigapubAdBtn');
 
+  // RichAds-এর জন্য নতুন বাটন
+  const watchRichAdsAdBtn = document.getElementById('watchRichAdsAdBtn');
+
 
   // ---------- State ----------
   let adsWatched = 0;
@@ -175,6 +178,8 @@ document.addEventListener("DOMContentLoaded", () => {
       watchAdexiumAdBtn.textContent = 'Waiting for timer to finish';
       watchGigapubAdBtn.disabled = true;
       watchGigapubAdBtn.textContent = 'Waiting for timer to finish';
+      watchRichAdsAdBtn.disabled = true; // RichAds বাটন আপডেট
+      watchRichAdsAdBtn.textContent = 'Waiting for timer to finish'; // RichAds বাটন আপডেট
     } else {
       watchAdBtn.disabled = false;
       watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
@@ -182,6 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
       watchAdexiumAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
       watchGigapubAdBtn.disabled = false;
       watchGigapubAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+      watchRichAdsAdBtn.disabled = false; // RichAds বাটন আপডেট
+      watchRichAdsAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`; // RichAds বাটন আপডেট
     }
   };
   const updateReferralStats = (referralCount, pointsEarned) => {
@@ -747,6 +754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     watchAdBtn.disabled = true;
     watchAdexiumAdBtn.disabled = true;
     watchGigapubAdBtn.disabled = true;
+    watchRichAdsAdBtn.disabled = true; // RichAds বাটন আপডেট
     if (adTimerInterval) clearInterval(adTimerInterval);
     adTimerInterval = setInterval(async () => {
       timeLeft--;
@@ -922,6 +930,59 @@ if (watchGigapubAdBtn) {
       });
   });
 }
+
+//======================= Watch Ad (RichAds) =======================
+if (watchRichAdsAdBtn) {
+  watchRichAdsAdBtn.addEventListener('click', () => {
+    // বিজ্ঞাপনের সীমা এবং কুলডাউন চেক করুন
+    if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+      alert('You have reached your ad limit or cooldown period. Please try again later.');
+      return;
+    }
+
+    // RichAds এর জন্য AdsController গ্লোবাল ভেরিয়েবল চেক করা
+    if (window.TelegramAdsController && typeof window.TelegramAdsController.showAd === 'function') {
+      
+      // বিজ্ঞাপন দেখানোর অনুরোধ
+      window.TelegramAdsController.showAd({
+          // 'placementId' না থাকলে RichAds initialize এ দেওয়া 'appId' ব্যবহার করবে
+      })
+      .then(response => {
+          if (response && response.result === 'success') {
+              // বিজ্ঞাপন সফলভাবে দেখলে ১০ পয়েন্ট পাবে
+              adsWatched++;
+              dailyAdsWatched++;
+              totalPoints += pointsPerAd; // প্রতিটি বিজ্ঞাপনে ১০ পয়েন্ট যোগ করুন
+              updateAdsCounter();
+              updatePointsDisplay();
+
+              if (adsWatched >= maxAdsPerCycle) {
+                  adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                  startAdTimer();
+                  alert('You have watched all ads for this cycle. The timer has started!');
+              } else {
+                  alert(`আপনি বিজ্ঞাপনটি সম্পূর্ণ দেখেছেন এবং ${pointsPerAd} পয়েন্ট অর্জন করেছেন!`);
+              }
+
+              saveUserDataToFirebase();
+          } else {
+              // যদি RichAds দেখায় কিন্তু সার্ভার থেকে 'success' না আসে
+              alert('বিজ্ঞাপনটি লোড হয়েছে, কিন্তু পুরস্কার পেতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+          }
+      })
+      .catch(e => {
+          // বিজ্ঞাপন লোড হতে বা দেখাতে ব্যর্থ হলে
+          console.error('RichAds ad failed:', e);
+          alert('বিজ্ঞাপন লোড হতে ব্যর্থ হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।');
+      });
+
+    } else {
+      alert('RichAds SDK লোড হয়নি। দয়া করে পেজ রিফ্রেশ করে আবার চেষ্টা করুন।');
+    }
+  });
+}
+
+
   // ======================= Init (UI defaults) =======================
   userNameDisplay.textContent = userName;
   welcomeUserNameDisplay.textContent = userName;
