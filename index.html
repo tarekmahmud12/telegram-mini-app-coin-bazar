@@ -6,16 +6,20 @@
   <title>Coin Bazar</title>
   <link rel="stylesheet" href="style.css"/>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://telegram.org/js/telegram-web-app.js?56"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js?56"></script> 
+
   <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
-<script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', () => {
-        const adexiumWidget = new AdexiumWidget({wid: '1b6359f2-c461-498c-915e-3dfbe0eaa3c1', adFormat: 'interstitial'});
-        adexiumWidget.autoMode();
-    });
-</script>
-  <script src="https://ad.gigapub.tech/script?id=2152"></script>
+  <script type="text/javascript">
+      // adexiumWidget-কে গ্লোবাল ভেরিয়েবলে সেভ করা হলো
+      window.globalAdexiumWidget = new AdexiumWidget({wid: '1b6359f2-c461-498c-915e-3dfbe0eaa3c1', adFormat: 'interstitial'});
+      
+      document.addEventListener('DOMContentLoaded', () => {
+          // adexiumWidget.autoMode(); লাইনটি সরানো হলো
+      });
+  </script>
+
+  <script src="https://ad.gigapub.tech/script?id=3256"></script>
+  
   <script src="//libtl.com/sdk.js" data-zone="9673543" data-sdk="show_9673543"></script>
 </head>
 <body>
@@ -271,4 +275,4 @@
 
   <script type="module" src="script.js"></script>
 </body>
-</html>
+                </html>
