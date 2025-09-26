@@ -881,7 +881,8 @@ document.addEventListener("DOMContentLoaded", () => {
       alert('Adexium ad script not loaded. Please try again.');
     }
   });
-  //======================= Watch Ad Gigapub) =======================
+  
+//======================= Watch Ad Gigapub) =======================
 // Gigapub এর বিজ্ঞাপন চালানোর জন্য নতুন বাটন
 // const watchGigapubAdBtn = document.getElementById('watchGigapubAdBtn'); // Already declared at the top
 
@@ -894,7 +895,8 @@ if (watchGigapubAdBtn) {
     }
 
     // Gigapub এর বিজ্ঞাপন চালু করুন
-    window.showGiga()
+    // **পরিবর্তন: window.showGiga() এর বদলে window.showGiga("main") ব্যবহার করা হলো**
+    window.showGiga("main") 
       .then(() => {
         // বিজ্ঞাপন সফলভাবে দেখলে ১০ পয়েন্ট পাবে
         adsWatched++;
