@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const adsLeftValue = document.getElementById('ads-left-value');
   const totalAdsWatched = document.getElementById('total-ads-watched');
   const welcomeAdsLeft = document.getElementById('welcome-ads-left');
-  const watchAdBtn = document.getElementById('libtl-ad-btn'); // **Updated ID for Libtl Ad Button**
+  const watchAdBtn = document.querySelector('.watch-ad-btn');
   const taskButtons = document.querySelectorAll('.task-btn');
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
@@ -76,8 +76,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // ---------- State ----------
-  let adsWatched = 0; // Ad count in the current cycle (0-10)
-  let dailyAdsWatched = 0; // Lifetime total ads watched (total in DB)
+  let adsWatched = 0;
+  let dailyAdsWatched = 0;
   const maxAdsPerCycle = 10;
   const adResetTimeInMinutes = 30;
   let adTimerInterval = null;
@@ -164,7 +164,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const updatePointsDisplay = () => {
     totalPointsDisplay.textContent = String(totalPoints);
   };
-  
   const updateAdsCounter = () => {
     const adsLeft = Math.max(0, maxAdsPerCycle - adsWatched);
     adWatchedCountSpan.textContent = `${adsWatched}/${maxAdsPerCycle} watched`;
@@ -172,32 +171,30 @@ document.addEventListener("DOMContentLoaded", () => {
     welcomeAdsLeft.textContent = String(adsLeft);
     totalAdsWatched.textContent = String(dailyAdsWatched);
 
-    const isCooldownActive = adCooldownEnds && adCooldownEnds.getTime() > Date.now();
-    const isDisabled = adsWatched >= maxAdsPerCycle || isCooldownActive;
-
-    const buttons = [watchAdBtn, watchAdexiumAdBtn, watchGigapubAdBtn, watchRichAdsAdBtn];
-    buttons.forEach(button => {
-        if (button) {
-            // Store original text if not already stored
-            if (!button.dataset.originalText) {
-                button.dataset.originalText = button.textContent;
-            }
-
-            button.disabled = isDisabled;
-            if (isDisabled) {
-                button.textContent = 'Waiting for timer to finish';
-            } else {
-                button.textContent = button.dataset.originalText;
-            }
-        }
-    });
+    if (adsWatched >= maxAdsPerCycle && adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
+      watchAdBtn.disabled = true;
+      watchAdBtn.textContent = 'Waiting for timer to finish';
+      watchAdexiumAdBtn.disabled = true;
+      watchAdexiumAdBtn.textContent = 'Waiting for timer to finish';
+      watchGigapubAdBtn.disabled = true;
+      watchGigapubAdBtn.textContent = 'Waiting for timer to finish';
+      watchRichAdsAdBtn.disabled = true; // RichAds বাটন আপডেট
+      watchRichAdsAdBtn.textContent = 'Waiting for timer to finish'; // RichAds বাটন আপডেট
+    } else {
+      watchAdBtn.disabled = false;
+      watchAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+      watchAdexiumAdBtn.disabled = false;
+      watchAdexiumAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+      watchGigapubAdBtn.disabled = false;
+      watchGigapubAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
+      watchRichAdsAdBtn.disabled = false; // RichAds বাটন আপডেট
+      watchRichAdsAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`; // RichAds বাটন আপডেট
+    }
   };
-  
   const updateReferralStats = (referralCount, pointsEarned) => {
     referralCountDisplay.textContent = referralCount;
     referralPointsEarnedDisplay.textContent = pointsEarned;
   };
-  
   const switchPage = (pageId) => {
     pages.forEach(p => p.classList.remove('active'));
     document.getElementById(pageId)?.classList.add('active');
@@ -206,12 +203,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (item.dataset.page + '-page' === pageId) item.classList.add('active');
     });
   };
-  
   const generateReferralCode = () => {
     const uniqueId = Math.floor(100000 + Math.random() * 900000);
     return `CB${uniqueId}`;
   };
-  
   const updateReferralLinkInput = () => {
     const code = referralCodeInput.value || "CB123456";
     referralLinkInput.value = `https://t.me/CoinBazar_bot?start=${code}`;
@@ -255,8 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
         telegramId,
         userName,
         points: totalPoints,
-        adsWatched, // Cycle count (0-10)
-        dailyAdsWatched, // Lifetime total
+        adsWatched,
+        dailyAdsWatched,
         lastAdResetDate: lastAdResetDate ? Timestamp.fromDate(lastAdResetDate) : null,
         adsCooldownEnds: adCooldownEnds ? Timestamp.fromDate(adCooldownEnds) : null,
         taskTimers: timersToSave,
@@ -278,12 +273,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = snap.data();
         userName = data.userName || (telegramUser?.first_name || 'User');
         totalPoints = data.points || 0;
-        adsWatched = data.adsWatched || 0; // Cycle count (0-10)
-        dailyAdsWatched = data.dailyAdsWatched || 0; // Lifetime total
+        adsWatched = data.adsWatched || 0;
+        dailyAdsWatched = data.dailyAdsWatched || 0;
         lastAdResetDate = data.lastAdResetDate ? toDate(data.lastAdResetDate) : null;
         taskTimers = data.taskTimers || {};
         bonusClaimed = data.bonusClaimed || {};
-        
         if (data.adsCooldownEnds) {
           adCooldownEnds = toDate(data.adsCooldownEnds);
         } else {
@@ -294,15 +288,14 @@ document.addEventListener("DOMContentLoaded", () => {
         totalWithdrawalsCount.textContent = data.totalWithdrawalsCount || 0;
         totalPointsWithdrawn.textContent = data.totalPointsWithdrawn || 0;
         
-        // --- Daily Ad Reset Logic (Simplified to check if cooldown is over) ---
-        const now = Date.now();
-        if (adCooldownEnds && adCooldownEnds.getTime() < now) {
-             adsWatched = 0; // Reset cycle count
-             adCooldownEnds = null;
-             console.log("Ad cooldown ended and cycle count reset.");
-        } else if (!adCooldownEnds) {
-             // If no cooldown set, ensure cycle count is based on daily reset if you decide to implement 24hr reset
-             // For now, sticking to 30 min cooldown logic, so no 24hr reset here.
+        // --- Daily Ad Reset Logic ---
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const resetDate = toDate(lastAdResetDate);
+        if (!resetDate || resetDate.getDate() !== now.getDate() || resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
+             dailyAdsWatched = 0;
+             lastAdResetDate = now;
+             console.log("Daily ad count reset.");
         }
         
         // Check if user has a referrer and if the bonus has not been processed yet
@@ -349,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         totalPoints = 0;
         referralCodeInput.value = newReferralCode;
-        adsWatched = 0; // Cycle count reset
+        dailyAdsWatched = 0;
         
         // Award referral points if this is a referred user
         if (referrerCode) {
@@ -369,7 +362,6 @@ document.addEventListener("DOMContentLoaded", () => {
       updateTaskButtons();
       updateBonusButtons();
 
-      // Start timer if cooldown is active
       if (adCooldownEnds && adCooldownEnds.getTime() > Date.now()) {
         const secondsLeft = Math.max(0, Math.floor((adCooldownEnds.getTime() - Date.now()) / 1000));
         startAdTimer(secondsLeft);
@@ -381,65 +373,11 @@ document.addEventListener("DOMContentLoaded", () => {
         saveUserDataToFirebase();
       }
       
+      saveUserDataToFirebase();
+
     } catch (error) {
       console.error("Error loading data:", error);
     }
-  };
-
-  // ======================= Ad Timer & Reward Logic (Unified) =======================
-  
-  const formatTime = (seconds) => {
-    if (seconds <= 0) return 'Ready!';
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
-  };
-
-  const startAdTimer = (initialSeconds = adResetTimeInMinutes * 60) => {
-    let timeLeft = Math.ceil(initialSeconds);
-    adTimerSpan.textContent = formatTime(timeLeft);
-    updateAdsCounter(); // Disable buttons
-    
-    if (adTimerInterval) clearInterval(adTimerInterval);
-    
-    adTimerInterval = setInterval(async () => {
-      timeLeft--;
-      adTimerSpan.textContent = formatTime(timeLeft);
-      if (timeLeft <= 0) {
-        clearInterval(adTimerInterval);
-        adsWatched = 0;
-        adCooldownEnds = null;
-        updateAdsCounter(); // Enable buttons
-        adTimerSpan.textContent = 'Ready!';
-        saveUserDataToFirebase();
-      }
-    }, 1000);
-  };
-  
-  // Function to handle reward and cooldown logic after a successful ad view
-  const grantAdReward = (adNetworkName) => {
-      // Check limit again for safety, though buttons should be disabled
-      if (adsWatched >= maxAdsPerCycle) {
-          console.warn(`Attempted to grant reward for ${adNetworkName} but cycle limit reached.`);
-          return;
-      }
-
-      adsWatched++; // Increment cycle count (0-10)
-      dailyAdsWatched++; // Increment lifetime count (total watched)
-      totalPoints += pointsPerAd; // Add points
-
-      updateAdsCounter();
-      updatePointsDisplay();
-
-      if (adsWatched >= maxAdsPerCycle) {
-          adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
-          startAdTimer(adResetTimeInMinutes * 60);
-          alert(`You have watched all ads for this cycle. The timer has started!`);
-      } else {
-          alert(`${adNetworkName} ad successfully watched! You earned ${pointsPerAd} points.`);
-      }
-
-      saveUserDataToFirebase();
   };
 
   // ======================= Tasks =======================
@@ -809,46 +747,98 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ======================= Ad Timer =======================
+  const startAdTimer = (initialSeconds = adResetTimeInMinutes * 60) => {
+    let timeLeft = Math.ceil(initialSeconds);
+    adTimerSpan.textContent = formatTime(timeLeft);
+    watchAdBtn.disabled = true;
+    watchAdexiumAdBtn.disabled = true;
+    watchGigapubAdBtn.disabled = true;
+    watchRichAdsAdBtn.disabled = true; // RichAds বাটন আপডেট
+    if (adTimerInterval) clearInterval(adTimerInterval);
+    adTimerInterval = setInterval(async () => {
+      timeLeft--;
+      adTimerSpan.textContent = formatTime(timeLeft);
+      if (timeLeft <= 0) {
+        clearInterval(adTimerInterval);
+        adsWatched = 0;
+        adCooldownEnds = null;
+        updateAdsCounter();
+        adTimerSpan.textContent = 'Ready!';
+        saveUserDataToFirebase();
+      }
+    }, 1000);
+  };
+  const formatTime = (seconds) => {
+    if (seconds <= 0) return 'Ready!';
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')} remaining`;
+  };
 
-  // ======================= Watch Ad (Libtl) =======================
-  // The original watchAdBtn (now ID libtl-ad-btn) will call the libtl ad
-  watchAdBtn.addEventListener('click', async () => { 
-    if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+  // ======================= Watch Ad (libtl) =======================
+  watchAdBtn.addEventListener('click', async () => {
+    if (adsWatched >= maxAdsPerCycle) {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
 
     if (typeof window.show_9673543 === 'function') {
       try {
-        // Start the ad immediately
-        window.show_9673543(); 
-        
-        // Wait a few seconds for the ad to show and give reward
-        // Libtl does not always provide a promise/callback for rewarded ads, so a timeout is used as a fallback.
-        setTimeout(() => {
-             // We assume the user watched it since we called the ad function
-             grantAdReward("Libtl");
-        }, 5000); // 5-second delay to cover ad start time
-        
+        await window.show_9673543().then(() => {
+          adsWatched++;
+          dailyAdsWatched++;
+          totalPoints += pointsPerAd;
+          updateAdsCounter();
+          updatePointsDisplay();
+          if (adsWatched >= maxAdsPerCycle) {
+            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+            startAdTimer();
+            alert('You have watched all ads for this cycle. The timer has started!');
+          } else {
+            alert(`You earned ${pointsPerAd} points!`);
+          }
+          saveUserDataToFirebase();
+        }).catch(async (e) => {
+          console.error('Rewarded Interstitial failed, trying Rewarded Popup:', e);
+          await window.show_9673543('pop').then(() => {
+            adsWatched++;
+            dailyAdsWatched++;
+            totalPoints += pointsPerAd;
+            updateAdsCounter();
+            updatePointsDisplay();
+            if (adsWatched >= maxAdsPerCycle) {
+              adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+              startAdTimer();
+              alert('You have watched all ads for this cycle. The timer has started!');
+            } else {
+              alert(`You earned ${pointsPerAd} points!`);
+            }
+            saveUserDataToFirebase();
+          }).catch(e => {
+            console.error('Rewarded Popup also failed:', e);
+            alert('There was an error loading the ad. Please try again.');
+          });
+        });
       } catch (e) {
-        console.error('Libtl ad function call failed:', e);
-        alert('Ad script not loaded or failed to start. Please try again.');
+        console.error('Ad function call failed:', e);
+        alert('Ad script not loaded. Please try again.');
       }
     } else {
-      alert('Libtl ad script not loaded. Please try again.');
+      alert('Ad script not loaded. Please try again.');
     }
   });
 
-
   // ======================= Watch Ad (Adexium) =======================
   watchAdexiumAdBtn.addEventListener('click', () => {
+    // এখানে globalAdexiumWidget ব্যবহার করা হলো
     const adexium = window.globalAdexiumWidget; 
 
-    if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+    if (adsWatched >= maxAdsPerCycle) {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
-    
+
     // Check if the Adexium SDK is loaded and the widget is available
     if (adexium && typeof adexium.showAd === 'function') {
       // Disable the button to prevent multiple clicks
@@ -859,8 +849,20 @@ document.addEventListener("DOMContentLoaded", () => {
       adexium.showAd({
         adFormat: 'interstitial',
         onAdFinished: () => {
-          // *** Unified Reward Call ***
-          grantAdReward("Adexium");
+          // This callback is triggered when the ad is watched completely.
+          adsWatched++;
+          dailyAdsWatched++;
+          totalPoints += pointsPerAd;
+          updateAdsCounter();
+          updatePointsDisplay();
+          if (adsWatched >= maxAdsPerCycle) {
+            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+            startAdTimer();
+            alert('You have watched all ads for this cycle. The timer has started!');
+          } else {
+            alert(`You've successfully watched the ad and earned ${pointsPerAd} points!`);
+          }
+          saveUserDataToFirebase();
         },
         onAdClosed: () => {
           // This callback is triggered if the ad is closed prematurely.
@@ -875,10 +877,11 @@ document.addEventListener("DOMContentLoaded", () => {
           watchAdexiumAdBtn.textContent = 'Ad Ready!';
         },
         onAdEvent: (event) => {
+          console.log(`Adexium event: ${event.type}`);
           // Re-enable the button after the ad lifecycle is complete
           if (event.type === 'ad_closed' || event.type === 'ad_finished' || event.type === 'ad_failed') {
             watchAdexiumAdBtn.disabled = false;
-            watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
+            watchAdexiumAdBtn.textContent = `Watch Ad & Earn ${pointsPerAd} Points`;
           }
         }
       });
@@ -887,59 +890,97 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   
-  //======================= Watch Ad (Gigapub) =======================
-  if (watchGigapubAdBtn) {
-    watchGigapubAdBtn.addEventListener('click', () => {
-      if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
-        alert('You have reached your ad limit or cooldown period. Please try again later.');
-        return;
-      }
+//======================= Watch Ad Gigapub) =======================
+// Gigapub এর বিজ্ঞাপন চালানোর জন্য নতুন বাটন
+// const watchGigapubAdBtn = document.getElementById('watchGigapubAdBtn'); // Already declared at the top
 
-      if (window.showGiga) {
-          window.showGiga("main") 
-            .then(() => {
-              // *** Unified Reward Call ***
-              grantAdReward("Gigapub");
-            })
-            .catch(e => {
-              console.error('Gigapub ad failed:', e);
-              alert('বিজ্ঞাপন লোড হতে ব্যর্থ হয়েছে অথবা আপনি এটি কেটে দিয়েছেন। কোনো পয়েন্ট যোগ করা হয়নি।');
-            });
-      } else {
-          alert('Gigapub SDK লোড হয়নি। দয়া করে পেজ রিফ্রেশ করে আবার চেষ্টা করুন।');
-      }
-    });
-  }
+if (watchGigapubAdBtn) {
+  watchGigapubAdBtn.addEventListener('click', () => {
+    // বিজ্ঞাপনের সীমা এবং কুলডাউন চেক করুন
+    if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+      alert('You have reached your ad limit or cooldown period. Please try again later.');
+      return;
+    }
 
-  //======================= Watch Ad (RichAds) =======================
-  if (watchRichAdsAdBtn) {
-    watchRichAdsAdBtn.addEventListener('click', () => {
-      if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
-        alert('You have reached your ad limit or cooldown period. Please try again later.');
-        return;
-      }
-
-      if (window.TelegramAdsController && typeof window.TelegramAdsController.showAd === 'function') {
+    // Gigapub এর বিজ্ঞাপন চালু করুন
+    // **পরিবর্তন: window.showGiga() এর বদলে window.showGiga("main") ব্যবহার করা হলো**
+    window.showGiga("main") 
+      .then(() => {
+        // বিজ্ঞাপন সফলভাবে দেখলে ১০ পয়েন্ট পাবে
+        adsWatched++;
+        dailyAdsWatched++;
+        totalPoints += 10; // প্রতিটি বিজ্ঞাপনে ১০ পয়েন্ট যোগ করুন
+        updateAdsCounter();
+        updatePointsDisplay();
         
-        window.TelegramAdsController.showAd({})
-        .then(response => {
-            if (response && response.result === 'success') {
-                // *** Unified Reward Call ***
-                grantAdReward("RichAds");
-            } else {
-                alert('বিজ্ঞাপনটি লোড হয়েছে, কিন্তু পুরস্কার পেতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
-            }
-        })
-        .catch(e => {
-            console.error('RichAds ad failed:', e);
-            alert('বিজ্ঞাপন লোড হতে ব্যর্থ হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।');
-        });
+        if (adsWatched >= maxAdsPerCycle) {
+            adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+            startAdTimer();
+            alert('You have watched all ads for this cycle. The timer has started!');
+          } else {
+            alert('আপনি বিজ্ঞাপনটি সম্পূর্ণ দেখেছেন এবং ১০ পয়েন্ট অর্জন করেছেন!');
+          }
+        
+        saveUserDataToFirebase();
+      })
+      .catch(e => {
+        // বিজ্ঞাপন দেখতে ব্যর্থ হলে অথবা কেটে দিলে
+        console.error('Gigapub ad failed:', e);
+        alert('বিজ্ঞাপন লোড হতে ব্যর্থ হয়েছে অথবা আপনি এটি কেটে দিয়েছেন। কোনো পয়েন্ট যোগ করা হয়নি।');
+      });
+  });
+}
 
-      } else {
-        alert('RichAds SDK লোড হয়নি। দয়া করে পেজ রিফ্রেশ করে আবার চেষ্টা করুন।');
-      }
-    });
-  }
+//======================= Watch Ad (RichAds) =======================
+if (watchRichAdsAdBtn) {
+  watchRichAdsAdBtn.addEventListener('click', () => {
+    // বিজ্ঞাপনের সীমা এবং কুলডাউন চেক করুন
+    if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+      alert('You have reached your ad limit or cooldown period. Please try again later.');
+      return;
+    }
+
+    // RichAds এর জন্য AdsController গ্লোবাল ভেরিয়েবল চেক করা
+    if (window.TelegramAdsController && typeof window.TelegramAdsController.showAd === 'function') {
+      
+      // বিজ্ঞাপন দেখানোর অনুরোধ
+      window.TelegramAdsController.showAd({
+          // 'placementId' না থাকলে RichAds initialize এ দেওয়া 'appId' ব্যবহার করবে
+      })
+      .then(response => {
+          if (response && response.result === 'success') {
+              // বিজ্ঞাপন সফলভাবে দেখলে ১০ পয়েন্ট পাবে
+              adsWatched++;
+              dailyAdsWatched++;
+              totalPoints += pointsPerAd; // প্রতিটি বিজ্ঞাপনে ১০ পয়েন্ট যোগ করুন
+              updateAdsCounter();
+              updatePointsDisplay();
+
+              if (adsWatched >= maxAdsPerCycle) {
+                  adCooldownEnds = new Date(Date.now() + adResetTimeInMinutes * 60 * 1000);
+                  startAdTimer();
+                  alert('You have watched all ads for this cycle. The timer has started!');
+              } else {
+                  alert(`আপনি বিজ্ঞাপনটি সম্পূর্ণ দেখেছেন এবং ${pointsPerAd} পয়েন্ট অর্জন করেছেন!`);
+              }
+
+              saveUserDataToFirebase();
+          } else {
+              // যদি RichAds দেখায় কিন্তু সার্ভার থেকে 'success' না আসে
+              alert('বিজ্ঞাপনটি লোড হয়েছে, কিন্তু পুরস্কার পেতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+          }
+      })
+      .catch(e => {
+          // বিজ্ঞাপন লোড হতে বা দেখাতে ব্যর্থ হলে
+          console.error('RichAds ad failed:', e);
+          alert('বিজ্ঞাপন লোড হতে ব্যর্থ হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।');
+      });
+
+    } else {
+      alert('RichAds SDK লোড হয়নি। দয়া করে পেজ রিফ্রেশ করে আবার চেষ্টা করুন।');
+    }
+  });
+}
 
 
   // ======================= Init (UI defaults) =======================
