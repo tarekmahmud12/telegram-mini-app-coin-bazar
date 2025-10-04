@@ -840,7 +840,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-  // ======================= Watch Ad (Adexium) =======================
+// ======================= Watch Ad (Adexium) =======================
 if (watchAdexiumAdBtn) {
   watchAdexiumAdBtn.addEventListener('click', () => {
     const adexium = window.globalAdexiumWidget;
@@ -850,43 +850,43 @@ if (watchAdexiumAdBtn) {
       return;
     }
 
-    if (adexium && typeof adexium.showAd === 'function') {
-      // Store original button text if not already stored
-      if (!watchAdexiumAdBtn.dataset.originalText) {
-        watchAdexiumAdBtn.dataset.originalText = watchAdexiumAdBtn.textContent;
-      }
-
-      // Disable button and update text
-      watchAdexiumAdBtn.disabled = true;
-      watchAdexiumAdBtn.textContent = 'Ad Loading...';
-
-      adexium.showAd({
-        adFormat: 'interstitial',
-        onAdFinished: () => {
-          grantAdReward("Adexium");
-          watchAdexiumAdBtn.disabled = false;
-          watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-        },
-        onAdClosed: () => {
-          alert('Ad was closed early. Points will not be awarded. Please watch the entire ad to earn points.');
-          watchAdexiumAdBtn.disabled = false;
-          watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-        },
-        onAdFailed: (error) => {
-          console.error("Adexium Ad Failed:", error);
-          alert('Ad failed to load. Please try again later.');
-          watchAdexiumAdBtn.disabled = false;
-          watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-        },
-        onAdReady: () => {
-          watchAdexiumAdBtn.textContent = 'Ad Ready!';
-        }
-      });
-    } else {
-      alert('Adexium ad script not loaded. Please try again.');
-      watchAdexiumAdBtn.disabled = false;
-      watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText || 'Watch Adexium Ad & Earn +10 Points';
+    if (!adexium || typeof adexium.showAd !== 'function') {
+      alert('Adexium ad script not loaded. Please try again or refresh the page.');
+      console.error('Adexium widget not available:', window.globalAdexiumWidget);
+      return;
     }
+
+    // Store original button text if not already stored
+    if (!watchAdexiumAdBtn.dataset.originalText) {
+      watchAdexiumAdBtn.dataset.originalText = watchAdexiumAdBtn.textContent;
+    }
+
+    // Disable button and update text
+    watchAdexiumAdBtn.disabled = true;
+    watchAdexiumAdBtn.textContent = 'Ad Loading...';
+
+    adexium.showAd({
+      adFormat: 'interstitial',
+      onAdFinished: () => {
+        grantAdReward("Adexium");
+        watchAdexiumAdBtn.disabled = false;
+        watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
+      },
+      onAdClosed: () => {
+        alert('Ad was closed early. Points will not be awarded. Please watch the entire ad to earn points.');
+        watchAdexiumAdBtn.disabled = false;
+        watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
+      },
+      onAdFailed: (error) => {
+        console.error("Adexium Ad Failed:", error);
+        alert('Ad failed to load. Please try again later.');
+        watchAdexiumAdBtn.disabled = false;
+        watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
+      },
+      onAdReady: () => {
+        watchAdexiumAdBtn.textContent = 'Ad Ready!';
+      }
+    });
   });
 }
   
