@@ -841,51 +841,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // ======================= Watch Ad (Adexium) =======================
+if (watchAdexiumAdBtn) {
   watchAdexiumAdBtn.addEventListener('click', () => {
-    const adexium = window.globalAdexiumWidget; 
+    const adexium = window.globalAdexiumWidget;
 
     if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
-    
-    // Check if the Adexium SDK is loaded and the widget is available
+
     if (adexium && typeof adexium.showAd === 'function') {
-      // Disable the button to prevent multiple clicks
+      // Store original button text if not already stored
+      if (!watchAdexiumAdBtn.dataset.originalText) {
+        watchAdexiumAdBtn.dataset.originalText = watchAdexiumAdBtn.textContent;
+      }
+
+      // Disable button and update text
       watchAdexiumAdBtn.disabled = true;
       watchAdexiumAdBtn.textContent = 'Ad Loading...';
 
-      // Show the Adexium interstitial ad
       adexium.showAd({
         adFormat: 'interstitial',
         onAdFinished: () => {
-          // *** Unified Reward Call ***
           grantAdReward("Adexium");
+          watchAdexiumAdBtn.disabled = false;
+          watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
         },
         onAdClosed: () => {
-          // This callback is triggered if the ad is closed prematurely.
           alert('Ad was closed early. Points will not be awarded. Please watch the entire ad to earn points.');
+          watchAdexiumAdBtn.disabled = false;
+          watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
         },
         onAdFailed: (error) => {
           console.error("Adexium Ad Failed:", error);
           alert('Ad failed to load. Please try again later.');
+          watchAdexiumAdBtn.disabled = false;
+          watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
         },
         onAdReady: () => {
-          // Update the button text once the ad is ready to show
           watchAdexiumAdBtn.textContent = 'Ad Ready!';
-        },
-        onAdEvent: (event) => {
-          // Re-enable the button after the ad lifecycle is complete
-          if (event.type === 'ad_closed' || event.type === 'ad_finished' || event.type === 'ad_failed') {
-            watchAdexiumAdBtn.disabled = false;
-            watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-          }
         }
       });
     } else {
       alert('Adexium ad script not loaded. Please try again.');
+      watchAdexiumAdBtn.disabled = false;
+      watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText || 'Watch Adexium Ad & Earn +10 Points';
     }
   });
+}
   
   //======================= Watch Ad (Gigapub) =======================
   if (watchGigapubAdBtn) {
