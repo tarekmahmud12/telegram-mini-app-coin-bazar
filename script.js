@@ -828,7 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => {
              // We assume the user watched it since we called the ad function
              grantAdReward("Libtl");
-        }, 5000); // 5-second delay to cover ad start time
+        }, 15000); // 5-second delay to cover ad start time
         
       } catch (e) {
         console.error('Libtl ad function call failed:', e);
