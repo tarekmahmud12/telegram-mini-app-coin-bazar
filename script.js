@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const updateReferralLinkInput = () => {
     const code = referralCodeInput.value || "CB123456";
-    referralLinkInput.value = `https://t.me/CoinBazar_bot?start=${code}`;
+    referralLinkInput.value = `t.me/BDEarningCash_bot/refar?start=${code}`;
   };
 
   // ======================= Referral Logic =======================
