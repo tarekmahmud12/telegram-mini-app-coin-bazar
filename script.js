@@ -40,6 +40,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const totalAdsWatched = document.getElementById('total-ads-watched');
   const welcomeAdsLeft = document.getElementById('welcome-ads-left');
   const watchAdBtn = document.getElementById('libtl-ad-btn'); // **Updated ID for Libtl Ad Button**
+  // Adsovio Ad Button (নতুন)
+const watchAdsovioAdBtn = document.getElementById('watchAdsovioAdBtn');
+
   const taskButtons = document.querySelectorAll('.task-btn');
   const referralCodeInput = document.getElementById('referral-code');
   const referralLinkInput = document.getElementById('referral-link');
@@ -214,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const updateReferralLinkInput = () => {
     const code = referralCodeInput.value || "CB123456";
-    referralLinkInput.value = `t.me/BDEarningCash_bot/refar?start=${code}`;
+    referralLinkInput.value = `https://t.me/CoinBazar_bot?start=${code}`;
   };
 
   // ======================= Referral Logic =======================
@@ -828,7 +831,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => {
              // We assume the user watched it since we called the ad function
              grantAdReward("Libtl");
-        }, 15000); // 5-second delay to cover ad start time
+        }, 5000); // 5-second delay to cover ad start time
         
       } catch (e) {
         console.error('Libtl ad function call failed:', e);
@@ -840,55 +843,52 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 
-// ======================= Watch Ad (Adexium) =======================
-if (watchAdexiumAdBtn) {
+  // ======================= Watch Ad (Adexium) =======================
   watchAdexiumAdBtn.addEventListener('click', () => {
-    const adexium = window.globalAdexiumWidget;
+    const adexium = window.globalAdexiumWidget; 
 
     if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
       alert('You have reached the ad limit for this cycle. Please wait for the timer to finish.');
       return;
     }
+    
+    // Check if the Adexium SDK is loaded and the widget is available
+    if (adexium && typeof adexium.showAd === 'function') {
+      // Disable the button to prevent multiple clicks
+      watchAdexiumAdBtn.disabled = true;
+      watchAdexiumAdBtn.textContent = 'Ad Loading...';
 
-    if (!adexium || typeof adexium.showAd !== 'function') {
-      alert('Adexium ad script not loaded. Please try again or refresh the page.');
-      console.error('Adexium widget not available:', window.globalAdexiumWidget);
-      return;
+      // Show the Adexium interstitial ad
+      adexium.showAd({
+        adFormat: 'interstitial',
+        onAdFinished: () => {
+          // *** Unified Reward Call ***
+          grantAdReward("Adexium");
+        },
+        onAdClosed: () => {
+          // This callback is triggered if the ad is closed prematurely.
+          alert('Ad was closed early. Points will not be awarded. Please watch the entire ad to earn points.');
+        },
+        onAdFailed: (error) => {
+          console.error("Adexium Ad Failed:", error);
+          alert('Ad failed to load. Please try again later.');
+        },
+        onAdReady: () => {
+          // Update the button text once the ad is ready to show
+          watchAdexiumAdBtn.textContent = 'Ad Ready!';
+        },
+        onAdEvent: (event) => {
+          // Re-enable the button after the ad lifecycle is complete
+          if (event.type === 'ad_closed' || event.type === 'ad_finished' || event.type === 'ad_failed') {
+            watchAdexiumAdBtn.disabled = false;
+            watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
+          }
+        }
+      });
+    } else {
+      alert('Adexium ad script not loaded. Please try again.');
     }
-
-    // Store original button text if not already stored
-    if (!watchAdexiumAdBtn.dataset.originalText) {
-      watchAdexiumAdBtn.dataset.originalText = watchAdexiumAdBtn.textContent;
-    }
-
-    // Disable button and update text
-    watchAdexiumAdBtn.disabled = true;
-    watchAdexiumAdBtn.textContent = 'Ad Loading...';
-
-    adexium.showAd({
-      adFormat: 'interstitial',
-      onAdFinished: () => {
-        grantAdReward("Adexium");
-        watchAdexiumAdBtn.disabled = false;
-        watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-      },
-      onAdClosed: () => {
-        alert('Ad was closed early. Points will not be awarded. Please watch the entire ad to earn points.');
-        watchAdexiumAdBtn.disabled = false;
-        watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-      },
-      onAdFailed: (error) => {
-        console.error("Adexium Ad Failed:", error);
-        alert('Ad failed to load. Please try again later.');
-        watchAdexiumAdBtn.disabled = false;
-        watchAdexiumAdBtn.textContent = watchAdexiumAdBtn.dataset.originalText;
-      },
-      onAdReady: () => {
-        watchAdexiumAdBtn.textContent = 'Ad Ready!';
-      }
-    });
   });
-}
   
   //======================= Watch Ad (Gigapub) =======================
   if (watchGigapubAdBtn) {
@@ -944,6 +944,33 @@ if (watchAdexiumAdBtn) {
     });
   }
 
+// ======================= Watch Ad (Adsovio) =======================
+if (watchAdsovioAdBtn) {
+    watchAdsovioAdBtn.addEventListener('click', () => {
+        // বিজ্ঞাপন দেখার সীমা (10) এবং চলমান কুলডাউন চেক করা হচ্ছে
+        if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+            alert('আপনি বিজ্ঞাপন দেখার সীমা বা কুলডাউন পিরিয়ডে পৌঁছেছেন। দয়া করে কিছুক্ষণ পরে আবার চেষ্টা করুন।');
+            return;
+        }
+
+        // Adsovio API কল করা হচ্ছে
+        if (typeof window.showAdsovio === 'function') {
+            window.showAdsovio()
+                .then(() => {
+                    // ✅ বিজ্ঞাপন সফলভাবে শেষ হলে, পুরস্কার দেওয়া হচ্ছে
+                    // *** Unified Reward Call ***
+                    grantAdReward("Adsovio");
+                })
+                .catch(e => {
+                    // ❌ বিজ্ঞাপনে কোনো সমস্যা হলে
+                    console.error('Adsovio ad failed:', e);
+                    alert('বিজ্ঞাপনটি লোড হয়েছে, কিন্তু পুরস্কার পেতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+                });
+        } else {
+            alert('Adsovio SDK লোড হয়নি। দয়া করে পেজ রিফ্রেশ করে আবার চেষ্টা করুন।');
+        }
+    });
+}
 
   // ======================= Init (UI defaults) =======================
   userNameDisplay.textContent = userName;
