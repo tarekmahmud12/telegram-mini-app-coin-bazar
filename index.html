@@ -1,266 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Coin Bazar</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coin Bazar</title>
+  <link rel="stylesheet" href="style.css"/>
 
-    <script src="https://js.libtl.com/sdk/9673543.js" defer></script>
-    <script src="https://static.adexium.xyz/widget/v1/widget.js" data-site-id="6655c65f21223e7484395b05"
-        data-hash="e2d7877e8a32a61361280f3b49e19d5c"></script>
-    <script src="https://ads-telegram.com/js/sdk.js" data-ad-id="66a06cc59873d6715f33538c"
-        data-type="interstitial"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js?56"></script> 
+  
+  <script src="https://js.adsgram.ai/ads.js" data-ad-id="int-17052" data-type="interstitial"></script>
 
-    <script src="https://js.adsgram.ai/ads.js" data-ad-id="int-17052" data-type="interstitial"></script>
 
-    <script src="https://adsovio.com/cdn/ads.js?app_uid=3105"></script>
+  <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+  <script type="text/javascript">
+      // adexiumWidget-কে গ্লোবাল ভেরিয়েবলে সেভ করা হলো
+      window.globalAdexiumWidget = new AdexiumWidget({wid: '1b6359f2-c461-498c-915e-3dfbe0eaa3c1', adFormat: 'interstitial'});
+      
+      document.addEventListener('DOMContentLoaded', () => {
+          // adexiumWidget.autoMode(); লাইনটি সরানো হলো
+      });
+  </script>
 
-</head>
+  <script src="https://ad.gigapub.tech/script?id=3256"></script>
+  
+  <script src="//libtl.com/sdk.js" data-zone="9673543" data-sdk="show_9673543"></script>
 
+  <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+  <script>
+    window.TelegramAdsController = new TelegramAdsController();
+    window.TelegramAdsController.initialize({
+      pubId: "987925",
+      appId: "3767", // আপনার অ্যাপ ID
+    });
+  </script>
+  <script src="https://adsovio.com/cdn/ads.js?app_uid=3105"></script>
+
+  </head>
 <body>
-    <div class="app-container">
-        <div class="app-header">
-            <div class="header-top">
-                <span class="icon" onclick="window.Telegram.WebApp.close()">&#10005;</span>
-                <h1 class="app-name">Coin Bazar</h1>
-                <span class="icon">&#9660;</span>
-            </div>
-            <div class="profile-card">
-                <img id="profile-pic" src="default-profile.png" alt="Profile Picture" class="profile-pic">
-                <div class="profile-info">
-                    <div class="user-details">
-                        <span id="user-name-display" class="user-name">User</span>
-                        <span id="edit-name-btn" class="icon edit-icon">&#9998;</span>
-                    </div>
-                    <span class="verify-badge">Verified</span>
-                </div>
-            </div>
-            <div class="user-stats">
-                <div class="stat-item">
-                    <span id="total-points" class="stat-value">0</span>
-                    <span class="stat-label">Total Points</span>
-                </div>
-                <div class="stat-item">
-                    <span id="ads-left-value" class="stat-value">10</span>
-                    <span class="stat-label">Ads Left</span>
-                </div>
-                <div class="stat-item">
-                    <span id="total-ads-watched" class="stat-value">0</span>
-                    <span class="stat-label">Total Ads Watched</span>
-                </div>
-            </div>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-top">
+        <i class="icon back-icon"></i>
+        <h1 class="app-name">Coin Bazar</h1>
+        <i class="icon settings-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1.51-1V3a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51c.78.34 1.48.9 2 1.82l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15z"></path></svg>
+        </i>
+      </div>
+      <div class="profile-card">
+        <div class="profile-info">
+          <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiLqGbEPB7_YxQqC_SRJmtpap6Y10JyFPK92LOvD7BknNHvuQNK90Lous-9h6zuYULOjK-s6BcVeAT3qDVpa4Al1m9OVk5DTUf-JkKTOiEo3yz2yre8Lkh1gBHP780lphfbqPe_kSZ9UIWZ8jmKG9gE5X5L4LMRSgdDKU8XJF7lbV5BwSmR6O9sXe6VYGI/s1233/1000034050.png" alt="Profile Picture" class="profile-pic" id="profile-pic">
+          <div class="user-details">
+            <span class="user-name" id="user-name-display">User</span>
+            <span class="verify-badge">✅</span>
+            <i class="icon edit-icon" id="edit-name-btn">✏️</i>
+          </div>
         </div>
-
-        <div class="main-content">
-            <div id="home-page" class="page active">
-                <div class="card">
-                    <h2>Welcome, <span id="welcome-user-name">User</span>!</h2>
-                    <p>You have <span id="welcome-ads-left">10</span> ads left to watch in this cycle.</p>
-                </div>
-
-                <div class="card">
-                    <h2>Watch Ads</h2>
-                    <p>Watch short video ads to earn points. You can watch up to 10 ads every 30 minutes.
-                        Each ad rewards you with 10 points.
-                    </p>
-                    <div class="ad-progress">
-                        <span id="ad-watched-count">0/10 watched</span>
-                        <span id="ad-timer">Ready!</span>
-                    </div>
-
-                    <button class="btn primary-btn watch-ad-btn" id="libtl-ad-btn">
-                        Watch Libtl Ad & Earn +10 Points
-                    </button>
-
-                    <button class="btn primary-btn watch-ad-btn" id="watch-adexium-ad-btn">
-                        Adexium Ad (Earn 10 Points)
-                    </button>
-
-                    <button class="btn primary-btn watch-ad-btn" id="watchGigapubAdBtn">
-                        Gigapub Ad (Earn 10 Points)
-                    </button>
-
-                    <button class="btn primary-btn watch-ad-btn" id="watchRichAdsAdBtn">
-                        RichAds Ad (Earn 10 Points)
-                    </button>
-
-                    <button class="btn primary-btn watch-ad-btn" id="watchAdsovioAdBtn">
-                        Adsovio Ad (Earn 10 Points)
-                    </button>
-                    
-                    <button class="btn primary-btn watch-ad-btn" id="watchAdsgramAdBtn">
-                        Adsgram Ad (Earn 10 Points)
-                    </button>
-
-                    <p class="developed-by">Developed by Coin Bazar Dev Team</p>
-                </div>
-            </div>
-
-            <div id="tasks-page" class="page">
-                <div class="card">
-                    <h2>Daily Tasks</h2>
-                    <p class="task-rules">Complete these simple tasks daily to earn extra points. You can complete each
-                        task once every 1 hour.
-                        Points are awarded after you spend at least 15 seconds on the target page.
-                    </p>
-                    <div class="task-buttons">
-                        <button class="btn task-btn" data-task-id="1" data-task-url="https://youtube.com">Task 1: +5
-                            Points</button>
-                        <button class="btn task-btn" data-task-id="2" data-task-url="https://facebook.com">Task 2: +5
-                            Points</button>
-                        <button class="btn task-btn" data-task-id="3" data-task-url="https://twitter.com">Task 3: +5
-                            Points</button>
-                        <button class="btn task-btn" data-task-id="4" data-task-url="https://google.com">Task 4: +5
-                            Points</button>
-                        </div>
-                </div>
-
-                <div class="card">
-                    <h2>Joining Bonuses</h2>
-                    <p class="points-rule">Join our channels and groups to instantly get bonus points! You only get this
-                        bonus once.</p>
-                    <div class="bonus-list">
-                        <div class="bonus-item">
-                            <span>Join Telegram Channel (+100 Points)</span>
-                            <button class="btn join-btn" data-bonus-name="telegramChannel"
-                                data-channel-link="https://t.me/CoinBazarOfficialChannel" data-bonus-points="100">Claim
-                                Bonus</button>
-                        </div>
-                        <div class="bonus-item">
-                            <span>Join Telegram Group (+50 Points)</span>
-                            <button class="btn join-btn" data-bonus-name="telegramGroup"
-                                data-channel-link="https://t.me/CoinBazarOfficialGroup" data-bonus-points="50">Claim
-                                Bonus</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="refer-page" class="page">
-                <div class="card">
-                    <h2>Refer & Earn</h2>
-                    <p>Invite your friends and earn <span class="stat-value">200 points</span> for every successful
-                        referral who joins! Your friends also get a bonus.</p>
-                    <div class="form-group">
-                        <label for="referral-code">Your Referral Code</label>
-                        <div class="input-with-btn">
-                            <input type="text" id="referral-code" value="CB123456" readonly>
-                            <button class="copy-btn">&#x2398;</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="referral-link">Shareable Referral Link</label>
-                        <div class="input-with-btn">
-                            <input type="text" id="referral-link"
-                                value="https://t.me/CoinBazar_bot?start=CB123456" readonly>
-                            <button class="copy-btn">&#x2398;</button>
-                        </div>
-                    </div>
-                    <button class="btn share-btn">Share Link</button>
-                </div>
-
-                <div class="card">
-                    <h2>Your Referral Stats</h2>
-                    <div class="user-stats">
-                        <div class="stat-item">
-                            <span id="referral-count" class="stat-value">0</span>
-                            <span class="stat-label">Total Referrals</span>
-                        </div>
-                        <div class="stat-item">
-                            <span id="referral-points-earned" class="stat-value">0</span>
-                            <span class="stat-label">Points Earned</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="withdraw-page" class="page">
-                <div class="card">
-                    <h2>Withdraw Points</h2>
-                    <form id="withdraw-form">
-                        <div class="form-group">
-                            <label for="payment-method">Payment Method</label>
-                            <select id="payment-method" required>
-                                <option value="">Select Method</option>
-                                <option value="bkash">Bkash (Bangladesh)</option>
-                                <option value="nagad">Nagad (Bangladesh)</option>
-                                <option value="grameenphone">Grameenphone Recharge (Bangladesh)</option>
-                                <option value="robi">Robi Recharge (Bangladesh)</option>
-                                <option value="banglalink">Banglalink Recharge (Bangladesh)</option>
-                                <option value="teletalk">Teletalk Recharge (Bangladesh)</option>
-                                <option value="airtel">Airtel Recharge (India/Others)</option>
-                                <option value="jio">Jio Recharge (India/Others)</option>
-                                <option value="binance">Binance (International)</option>
-                                <option value="webmoney">WebMoney (International)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="amount">Amount (Points)</label>
-                            <input type="number" id="amount" placeholder="Enter amount (points)" required>
-                            <span id="withdraw-message" class="points-rule"></span>
-                        </div>
-                        <div class="form-group">
-                            <label for="account-id">Account/Number</label>
-                            <input type="text" id="account-id" placeholder="Enter your Account ID or Mobile Number"
-                                required>
-                        </div>
-                        <button type="submit" class="btn submit-btn">Submit Withdrawal</button>
-                    </form>
-                </div>
-
-                <div class="card withdrawal-history-card">
-                    <h2>Withdrawal History</h2>
-                    <div class="user-withdraw-stats">
-                        <div class="stat-item">
-                            <span id="total-withdrawals-count" class="stat-value">0</span>
-                            <span class="stat-label">Total Withdrawals</span>
-                        </div>
-                        <div class="stat-item">
-                            <span id="total-points-withdrawn" class="stat-value">0</span>
-                            <span class="stat-label">Points Withdrawn</span>
-                        </div>
-                    </div>
-                    <ul id="withdrawal-history-list">
-                        <li class="no-history-message">No withdrawal history found.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div id="bonus-page" class="page">
-                <div class="card">
-                    <h2>Bonus Information</h2>
-                    <p>All joining bonuses have been moved to the **Tasks** page for easier access.</p>
-                </div>
-            </div>
-
+        <div class="user-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="total-points">0</span>
+            <span class="stat-label">Points</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="ads-left-value">10</span>
+            <span class="stat-label">Ads Left</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="total-ads-watched">0</span>
+            <span class="stat-label">Total Watched</span>
+          </div>
         </div>
+      </div>
+    </header>
 
-        <div class="app-footer">
-            <div class="nav-item active" data-page="home">
-                <span class="icon">&#127968;</span>
-                <span>Home</span>
+    <main class="main-content">
+      <section id="home-page" class="page active">
+        <div class="welcome-card card">
+          <h2 class="welcome-text">Welcome, <span id="welcome-user-name">User</span>!</h2>
+          <p>Start earning points by completing tasks, watching ads, and inviting friends.</p>
+          <div class="welcome-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="welcome-ads-left">10</span>
+              <span class="stat-label">Ads Left</span>
             </div>
-            <div class="nav-item" data-page="tasks">
-                <span class="icon">&#128196;</span>
-                <span>Tasks</span>
+            <div class="stat-item">
+              <span class="stat-value" id="total-points-welcome">0</span>
+              <span class="stat-label">Points</span>
             </div>
-            <div class="nav-item" data-page="refer">
-                <span class="icon">&#128100;</span>
-                <span>Refer</span>
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">Referrals</span>
             </div>
-            <div class="nav-item" data-page="withdraw">
-                <span class="icon">&#128184;</span>
-                <span>Withdraw</span>
-            </div>
-            <div class="nav-item" data-page="bonus">
-                <span class="icon">&#127873;</span>
-                <span>Bonus</span>
-            </div>
+          </div>
+          <p class="developed-by">Developed by: Coin Bazar</p>
         </div>
+        <div class="watch-ads-card card">
+          <h2>Watch Ads</h2>
+          <p>Watch short video ads to earn points. You can watch up to 10 ads every 30 minutes.</p>
+          <p class="points-rule">Each ad rewards you with 10 points.</p>
+          <div class="ad-progress">
+            <span id="ad-watched-count">0/10 watched</span>
+            <span id="ad-timer">00:00 remaining</span>
+          </div>
+          
+          <button id="libtl-ad-btn" class="watch-ad-btn">Watch Libtl Ad & Earn +10 Points</button>
+          
+          <button id="watch-adexium-ad-btn" class="watch-ad-btn">Watch Adexium Ad & Earn +10 Points</button>
+          
+          <button id="watchGigapubAdBtn" class="watch-ad-btn">Watch Gigapub Ad & Earn +10 Points</button>
+          
+          <button id="watchRichAdsAdBtn" class="watch-ad-btn">Watch RichAds Ad & Earn +10 Points</button>
+          <button class="btn primary-btn watch-ad-btn" id="watchAdsovioAdBtn">
+    Adsovio Ad (Earn 10 Points)
+</button>
+
+<button class="btn primary-btn watch-ad-btn" id="watchAdsgramAdBtn">
+    Adsgram Ad (Earn 10 Points)
+</button>
+
+          </div>
+      </section>
+
+      <section id="tasks-page" class="page">
+        <div class="tasks-card card">
+          <h2>Daily Tasks</h2>
+          <p class="task-rules">
+            Complete a task to earn 05 points. To successfully complete a task, you must:
+            <br>- Stay on the website for at least 20 seconds.
+            <br>- If prompted, sign up for the website.
+            <br>Each task can be completed once per hour.
+          </p>
+          <div class="task-buttons">
+            <button class="task-btn" data-task-id="1" data-task-url="https://otieu.com/4/9569264">Task 1: +05 Points</button>
+            <button class="task-btn" data-task-id="2" data-task-url="https://www.profitableratecpm.com/yh7pvdve?key=58d4a9b60d7d99d8d92682690909edc3">Task 2: +05 Points</button>
+            <button class="task-btn" data-task-id="3" data-task-url="https://otieu.com/4/9569264">Task 3: +05 Points</button>
+            <button class="task-btn" data-task-id="4" data-task-url="https://otieu.com/4/9627131">Task 4: +05 Points</button>
+            <button class="task-btn" data-task-id="5" data-task-url="https://www.profitableratecpm.com/an1nkzmp5v?key=e428dec5d97a44ad25af956b86d80b0a">Task 5: +05 Points</button>
+            <button class="task-btn" data-task-id="6" data-task-url="https://www.profitableratecpm.com/dwefq6kikh?key=6d8d2916ba7ea314b67c26d55a038c80">Task 6: +05 Points</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="bonus-page" class="page">
+        <div class="bonus-card card">
+          <h2>Bonus Rewards</h2>
+          <p>Join our community channels to earn bonus points. Visit the channel and return to claim your reward.</p>
+          <div class="bonus-item">
+            <span>Official Channel</span>
+            <button class="join-btn" data-bonus-name="officialChannel" data-channel-link="https://t.me/coinbazarmessage" data-bonus-points="20">+20 Points</button>
+          </div>
+          <div class="bonus-item">
+            <span>Support Group</span>
+            <button class="join-btn" data-bonus-name="supportGroup" data-channel-link="https://t.me/CoinBazarWithdraRequest" data-bonus-points="20">+20 Points</button>
+          </div>
+          <div class="bonus-item">
+            <span>Facebook Community</span>
+            <button class="join-btn" data-bonus-name="facebookCommunity" data-channel-link="https://www.facebook.com/share/1FfBhkYNgR/" data-bonus-points="20">+20 Points</button>
+          </div>
+          <div class="bonus-item">
+            <span>YouTube Community</span>
+            <button class="join-btn" data-bonus-name="youtubeCommunity" data-channel-link="https://www.youtube.com/@CoinBazarBD" data-bonus-points="20">+20 Points</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="withdraw-page" class="page">
+        <div class="withdraw-card card">
+          <h2>Withdraw</h2>
+          <div class="user-withdraw-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="total-withdrawals-count">0</span>
+              <span class="stat-label">Total Withdrawals</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="total-points-withdrawn">0</span>
+              <span class="stat-label">Points Withdrawn</span>
+            </div>
+          </div>
+          <p id="withdraw-message">Minimum 10,000 points are required for Mobile Banking withdrawal.</p>
+          <form id="withdraw-form">
+            <div class="form-group">
+              <label for="payment-method">Payment Method</label>
+              <select id="payment-method" required>
+                <option value="" disabled selected>Select method</option>
+                <optgroup label="Direct Payments">
+                  <option value="bkash">Bkash</option>
+                  <option value="nagad">Nagad</option>
+                </optgroup>
+                <optgroup label="International">
+                  <option value="binance">Binance</option>
+                  <option value="webmoney">WebMoney</option>
+                </optgroup>
+                <optgroup label="Mobile Recharge">
+                  <option value="grameenphone">Grameenphone</option>
+                  <option value="robi">Robi</option>
+                  <option value="jio">Jio</option>
+                  <option value="airtel">Airtel</option>
+                  <option value="banglalink">Banglalink</option>
+                  <option value="teletalk">Teletalk</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="amount">Amount (Points)</label>
+              <input type="number" id="amount" placeholder="Enter amount (min 10000)" required>
+            </div>
+            <div class="form-group">
+              <label for="account-id">Account Number/ID</label>
+              <input type="text" id="account-id" placeholder="Enter your account details" required>
+            </div>
+            <button type="submit" class="submit-btn">Submit Request</button>
+          </form>
+        </div>
+        
+        <div class="withdrawal-history-card card">
+          <h2>Withdrawal History</h2>
+          <ul id="withdrawal-history-list">
+            </ul>
+        </div>
+      </section>
+
+      <section id="referral-page" class="page">
+        <div class="referral-card card">
+          <h2>Refer & Earn</h2>
+          <p>Invite friends and earn 200 points per successful referral!</p>
+          <div class="referral-item">
+            <label for="referral-code">Your Referral Code</label>
+            <div class="input-with-btn">
+              <input type="text" id="referral-code" value="CB123456" readonly>
+              <button class="copy-btn">Copy</button>
+            </div>
+          </div>
+          <div class="referral-item">
+            <label for="referral-link">Your Referral Link</label>
+            <div class="input-with-btn">
+              <input type="text" id="referral-link" value="https://t.me/CoinBazar_bot" readonly>
+              <button class="copy-btn">Copy</button>
+            </div>
+          </div>
+          <button class="share-btn">Share Link</button>
+          <div class="referral-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="referral-count">0</span>
+              <span class="stat-label">Referrals</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="referral-points-earned">0</span>
+              <span class="stat-label">Points Earned</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="ad-container">
+      <script type="text/javascript">
+        atOptions = {
+          'key' : '023e584c64137b4c3286667bdfcfecfa',
+          'format' : 'iframe',
+          'height' : 50,
+          'width' : 320,
+          'params' : {}
+        };
+      </script>
+      <script type="text/javascript" src="//www.highperformanceformat.com/023e584c64137b4c3286667bdfcfecfa/invoke.js"></script>
     </div>
-    <script type="module" src="script.js"></script>
-</body>
 
-  </html>
+    <footer class="app-footer">
+      <div class="nav-item active" data-page="home">
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </i>
+        <span>Home</span>
+      </div>
+      <div class="nav-item" data-page="tasks">
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clipboard"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+        </i>
+        <span>Tasks</span>
+      </div>
+      <div class="nav-item" data-page="referral">
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-users"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </i>
+        <span>Refer</span>
+      </div>
+      <div class="nav-item" data-page="withdraw">
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-dollar-sign"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </i>
+        <span>Withdraw</span>
+      </div>
+      <div class="nav-item" data-page="bonus">
+        <i class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-gift"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+        </i>
+        <span>Bonus</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+    </html>
