@@ -42,6 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const watchAdBtn = document.getElementById('libtl-ad-btn'); // **Updated ID for Libtl Ad Button**
   // Adsovio Ad Button (নতুন)
 const watchAdsovioAdBtn = document.getElementById('watchAdsovioAdBtn');
+  // Adsgram Ad Button (নতুন)
+const watchAdsgramAdBtn = document.getElementById('watchAdsgramAdBtn');
 
   const taskButtons = document.querySelectorAll('.task-btn');
   const referralCodeInput = document.getElementById('referral-code');
@@ -178,7 +180,7 @@ const watchAdsovioAdBtn = document.getElementById('watchAdsovioAdBtn');
     const isCooldownActive = adCooldownEnds && adCooldownEnds.getTime() > Date.now();
     const isDisabled = adsWatched >= maxAdsPerCycle || isCooldownActive;
 
-    const buttons = [watchAdBtn, watchAdexiumAdBtn, watchGigapubAdBtn, watchRichAdsAdBtn];
+    const buttons = [watchAdBtn, watchAdexiumAdBtn, watchGigapubAdBtn, watchRichAdsAdBtn, watchAdsovioAdBtn, watchAdsgramAdBtn];
     buttons.forEach(button => {
         if (button) {
             // Store original text if not already stored
@@ -971,6 +973,36 @@ if (watchAdsovioAdBtn) {
         }
     });
 }
+
+
+// ======================= Watch Ad (Adsgram) =======================
+if (watchAdsgramAdBtn) {
+    watchAdsgramAdBtn.addEventListener('click', () => {
+        // বিজ্ঞাপন দেখার সীমা (10) এবং চলমান কুলডাউন চেক করা হচ্ছে
+        if (adsWatched >= maxAdsPerCycle || (adCooldownEnds && adCooldownEnds.getTime() > Date.now())) {
+            alert('আপনি বিজ্ঞাপন দেখার সীমা বা কুলডাউন পিরিয়ডে পৌঁছেছেন। দয়া করে কিছুক্ষণ পরে আবার চেষ্টা করুন।');
+            return;
+        }
+
+        // Adsgram API কল করা হচ্ছে
+        if (window.adsgram && typeof window.adsgram.showAd === 'function') {
+            window.adsgram.showAd()
+                .then(() => {
+                    // ✅ বিজ্ঞাপন সফলভাবে শেষ হলে, পুরস্কার দেওয়া হচ্ছে
+                    // *** Unified Reward Call ***
+                    grantAdReward("Adsgram");
+                })
+                .catch(e => {
+                    // ❌ বিজ্ঞাপনে কোনো সমস্যা হলে
+                    console.error('Adsgram ad failed:', e);
+                    alert('বিজ্ঞাপনটি লোড হয়েছে, কিন্তু পুরস্কার পেতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+                });
+        } else {
+            alert('Adsgram SDK লোড হয়নি। দয়া করে পেজ রিফ্রেশ করে আবার চেষ্টা করুন।');
+        }
+    });
+}
+
 
   // ======================= Init (UI defaults) =======================
   userNameDisplay.textContent = userName;
